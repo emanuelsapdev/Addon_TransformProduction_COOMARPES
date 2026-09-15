@@ -1,0 +1,10 @@
+﻿- EN PROGRESO : Estoy implementando el contexto, para manejar de manera global 
+				por todo el proyecto los lotes de los articulos para generar las entradas y salidas de mercaderia. ✔
+
+- SEGUIR CON: 
+	* Listar los lotes del articulo principal de la cabecera. ✔
+	* Crear automaticamente los lotes de los articulos de la matrix. (AUN NO SE IMPLEMENTO)
+
+	esto es lo que crea el lote en los nuevos ingresos de articulos: "SELECT TO_CHAR(CURRENT_DATE) FROM DUMMY;"
+	la fecha del vencimiento la obtienen con: "SELECT ADD_YEARS(CURRENT_DATE, +3) FROM DUMMY"
+	la fecha de fabricacion la obtienen con: "SELECT CURRENT_DATE FROM DUMMY;"
