@@ -1,6 +1,7 @@
 ﻿using Addon_TransformProduction.Common;
 using Addon_TransformProduction.Forms.WindowBatches;
 using Addon_TransformProduction.Services;
+using SAPbouiCOM;
 using System;
 
 namespace Addon_TransformProduction.Forms.TransformProduction
@@ -106,13 +107,22 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return; 
             }
 
-            //if (ctx.FormBatches != null && ctx.FormBatches.Visible)
-            //{
-            //    NotificationService.MostrarError("Debe cerrar el formulario de lotes antes de crear la producción.");
-            //    BubbleEvent = false;
-            //    return;
-            //}
-            //CrearProduccion(ctx);
+            var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
+            oMatrix.FlushToDataSource();
+
+            var oDbDataSource = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
+            ctx.InventoryGenEntriesData = ObtenerInfoLineas(oDbDataSource);
+
+            if (!CrearProduccion(ctx, out int entryDocEntry, out int exitDocEntry))
+            {
+                BubbleEvent = false;
+                return;
+            }
+
+            EscribirEstadoCabecera(oForm, ctx.PrincipalStatus);
+
+            ctx.InventoryGenEntriesDocEntry = entryDocEntry;
+            ctx.InventoryGenExitsDocEntry = exitDocEntry;
         }
         public void ManejarCreacionProduccionPendiente(SAPbouiCOM.Form oForm, out bool BubbleEvent)
         {
@@ -124,13 +134,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 BubbleEvent = false;
                 return;
             }
-
-            //if (ctx.FormBatches != null && ctx.FormBatches.Visible)
-            //{
-            //    NotificationService.MostrarError("Debe cerrar el formulario de lotes antes de crear la producción.");
-            //    BubbleEvent = false;
-            //    return;
-            //}
 
             //CrearProduccionPendiente(ctx);
         }

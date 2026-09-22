@@ -1,4 +1,5 @@
 using Addon_TransformProduction.Common;
+using Addon_TransformProduction.Models;
 using Addon_TransformProduction.Services;
 using Addon_TransformProduction.Tools;
 using SAPbobsCOM;
@@ -18,8 +19,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             string itemCode = LeerCodigoArticulo(oForm);
             if (string.IsNullOrWhiteSpace(itemCode)) return;
 
-            var context = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-            context.PrincipalItemCode = itemCode;
+            var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+            ctx.PrincipalItemCode = itemCode;
 
             Recordset oRecordSet = null;
             try
@@ -58,6 +59,45 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             var context = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
             context.PrincipalQuantityConsumed = qty;
+        }
+
+        /// <summary>
+        /// Orquesta la creación completa de la producción: crea la entrada de mercancía
+        /// (subproductos obtenidos, <see cref="TransformProductionContext.InventoryGenEntriesData"/>)
+        /// y la salida de mercancía (artículo principal consumido,
+        /// <see cref="TransformProductionContext.InventoryGenExitsData"/>), las relaciona entre sí
+        /// vía documentos referenciados y, si ambas se crean sin error, deja que continúe la
+        /// creación del registro del UDO en estado Completado.
+        /// </summary>
+        public bool CrearProduccion(TransformProductionContext ctx, out int entryDocEntry, out int exitDocEntry)
+        {
+            entryDocEntry = 0;
+            exitDocEntry = 0;
+            try
+            {
+                ConnectionSDK.DIAPI.StartTransaction();
+                // Entrada de mercancía: subproductos obtenidos de la transformación.
+                entryDocEntry = CrearEntradaMercancia(ctx.InventoryGenEntriesData);
+
+                // Salida de mercancía: artículo principal consumido, referenciando la entrada
+                // recién creada para que ambos documentos queden vinculados entre sí
+                // ("Documentos Referenciados").
+                exitDocEntry = CrearSalidaMercancia(ctx.InventoryGenExitsData);
+
+                ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.COMPLETED;
+
+                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_Commit);
+
+                ReferenciarDocs(entryDocEntry, BoObjectTypes.oInventoryGenEntry, exitDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);   
+                NotificationService.MostrarError($"Error creando la producción (Entrada/Salida de mercancía): {ex.Message}");
+                return false;
+            }
         }
     }
 }

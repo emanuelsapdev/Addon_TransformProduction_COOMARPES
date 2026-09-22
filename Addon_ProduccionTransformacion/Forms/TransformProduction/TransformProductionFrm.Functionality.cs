@@ -1,8 +1,12 @@
+using Addon_TransformProduction.Common;
 using Addon_TransformProduction.Models;
 using Addon_TransformProduction.Services;
+using SAPbouiCOM;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Addon_TransformProduction.Forms.TransformProduction
 {
@@ -45,7 +49,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return false;
             }
 
-            if(ctx.BatchHead.Select(i => i.QuantityAssigned).Sum() != cantidad)
+            if(ctx.InventoryGenExitsData.Items.SelectMany(item => item.Batches.Select(batch => batch.Quantity)).Sum() != cantidad)
             {
                 NotificationService.MostrarError("La cantidad total asignada no coincide con la Cantidad Consumida.");
                 return false;
@@ -54,6 +58,163 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             ctx.PrincipalItemCode = itemCode;
             ctx.PrincipalQuantityConsumed = cantidad;
             return true;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public InventoryGenModel ObtenerInfoLineas(SAPbouiCOM.DBDataSource oDbDataSource)
+        {
+            var invGen = new InventoryGenModel();
+            if (oDbDataSource == null) return invGen;
+
+            var itemsIndex = new Dictionary<string, InventoryGenModel.Item>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < oDbDataSource.Size; i++)
+            {
+                string itemCode = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i) ?? string.Empty).Trim();
+                string batchNum = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i) ?? string.Empty).Trim();
+                string whs = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.WAREHOUSE, i) ?? string.Empty).Trim();
+                string uom = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.UNIT_MEASUREMENT, i) ?? string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(itemCode) || string.IsNullOrWhiteSpace(batchNum))
+                    continue;
+
+                double qty = ParseDouble(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i));
+                if (qty <= 0) continue;
+
+                decimal price = ParseDecimal(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.PRICE, i));
+
+                DateTime expDate = ParseDateOrToday(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i));
+                DateTime inDate = ParseDateOrToday(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i));
+                DateTime mnfDate = ParseDateOrToday(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i));
+
+                string itemKey = string.Concat(itemCode, "|", whs, "|", price.ToString(CultureInfo.InvariantCulture));
+                if (!itemsIndex.TryGetValue(itemKey, out var item))
+                {
+                    item = new InventoryGenModel.Item
+                    {
+                        ItemCode = itemCode,
+                        Warehouse = whs,
+                        UnitMeasurement = uom,
+                        Price = price,
+                        Quantity = 0d
+                    };
+
+                    itemsIndex.Add(itemKey, item);
+                    invGen.Items.Add(item);
+                }
+
+                var existingBatch = item.Batches.FirstOrDefault(b => string.Equals(b.BatchNumber, batchNum, StringComparison.OrdinalIgnoreCase));
+                if (existingBatch != null)
+                {
+                    existingBatch.Quantity += qty;
+                }
+                else
+                {
+                    var batch = new InventoryGenModel.Item.Batch
+                    {
+                        BatchNumber = batchNum,
+                        Quantity = qty,
+                        ExpDate = expDate,
+                        InDate = inDate,
+                        MnfDate = mnfDate
+                    };
+
+                    item.AddBatch(batch);
+                }
+
+                item.Quantity += qty;
+            }
+
+            return invGen;
+        }
+
+        private static double ParseDouble(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0d;
+            if (double.TryParse(value, NumberStyles.Any, CultureInfo.CurrentCulture, out var result)) return result;
+            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out result)) return result;
+            return 0d;
+        }
+
+        private static decimal ParseDecimal(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0m;
+            if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.CurrentCulture, out var result)) return result;
+            if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out result)) return result;
+            return 0m;
+        }
+
+        private static DateTime ParseDateOrToday(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return DateTime.Today;
+
+            if (DateTime.TryParseExact(value.Trim(), "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+                return dt;
+
+            if (DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.None, out dt))
+                return dt;
+
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+                return dt;
+
+            return DateTime.Today;
+        }
+
+        public static void FormularioEnCualquierEstado(SAPbouiCOM.Form oForm)
+        {
+            SAPbouiCOM.Item oItemItemCode = oForm.Items.Item(CONSTANTS.UID.HEADER.ITEM_CODE);
+            oItemItemCode.Enabled = false;
+        }
+
+        public static void FormularioEnEstadoCompletado(SAPbouiCOM.Form oForm) 
+        {
+            SAPbouiCOM.Item oItemBtnBatch = oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT);
+            oItemBtnBatch.Enabled = false;
+
+            SAPbouiCOM.Item oItemBtnConfirProd = oForm.Items.Item(CONSTANTS.UID.BUTTONS.CONFIRM_PROD);
+            oItemBtnConfirProd.Enabled = false;
+
+            SAPbouiCOM.Item oItemBtnShowDocuments = oForm.Items.Item(CONSTANTS.UID.BUTTONS.SHOW_DOCUMENTS);
+            oItemBtnShowDocuments.Enabled = true;
+
+            SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
+            oItemBtnRevert.Enabled = true;
+        }
+
+        public static void FormularioEnEstadoPendiente(SAPbouiCOM.Form oForm) 
+        {
+            SAPbouiCOM.Item oItemBtnBatch = oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT);
+            oItemBtnBatch.Enabled = true;
+
+            SAPbouiCOM.Item oItemBtnConfirProd = oForm.Items.Item(CONSTANTS.UID.BUTTONS.CONFIRM_PROD);
+            oItemBtnConfirProd.Enabled = true;
+
+            SAPbouiCOM.Item oItemBtnShowDocuments = oForm.Items.Item(CONSTANTS.UID.BUTTONS.SHOW_DOCUMENTS);
+            oItemBtnShowDocuments.Enabled = false;
+
+            SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
+            oItemBtnRevert.Enabled = false;
+        }
+
+        public static void FormularioEnEstadoRevertido(SAPbouiCOM.Form oForm) 
+        {
+            SAPbouiCOM.Item oItemBtnBatch = oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT);
+            oItemBtnBatch.Enabled = false;
+
+            SAPbouiCOM.Item oItemBtnConfirProd = oForm.Items.Item(CONSTANTS.UID.BUTTONS.CONFIRM_PROD);
+            oItemBtnConfirProd.Enabled = false;
+
+            SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
+            oItemBtnRevert.Enabled = false;
+        }
+
+        public static void AbrirDocumentosRelacionados(TransformProductionContext ctx)
+        {
+            ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsIssue, null, ctx.InventoryGenExitsDocEntry.ToString());
+            ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsReceipt, null, ctx.InventoryGenEntriesDocEntry.ToString());
         }
     }
 }

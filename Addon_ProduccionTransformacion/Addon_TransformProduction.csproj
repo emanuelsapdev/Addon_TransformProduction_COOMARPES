@@ -299,6 +299,7 @@
     <Compile Include="Forms\WindowBatches\WindowBatchesFrm.UIBuilder.cs" />
     <Compile Include="Models\ActualizacionCostosForm.cs" />
     <Compile Include="Models\BatchModel.cs" />
+    <Compile Include="Models\InventoryGenModel.cs" />
     <Compile Include="Models\GetBillOfMaterialsModel.cs" />
     <Compile Include="Models\TransformProductionContext.cs" />
     <Compile Include="Program.cs" />
@@ -333,6 +334,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="AYUDA A MEMORIA.txt" />
+    <Content Include="Requireds\ITPS_VW_TRANSFPROD_LOTES.txt" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="SAPbobsCOM">

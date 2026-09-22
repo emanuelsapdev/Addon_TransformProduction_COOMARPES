@@ -4,6 +4,7 @@ using SAPbouiCOM;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace Addon_TransformProduction.Forms.WindowBatches
 {
@@ -96,7 +97,7 @@ namespace Addon_TransformProduction.Forms.WindowBatches
             if (ctx.FormTransfProd == null) return;
 
             ((SAPbouiCOM.StaticText)ctx.FormTransfProd.Items.Item(TransformProductionFrm.CONSTANTS.UID.HEADER.LOTE_LABEL).Specific)
-                .Caption = string.Join(", ", ctx.BatchHead.ConvertAll(lote => lote.BatchNumber).ToArray());
+                .Caption = string.Join(", ", ctx.InventoryGenExitsData.Items.SelectMany(item => item.Batches.Select(batch => batch.BatchNumber)).ToArray());
         }
     }
 }

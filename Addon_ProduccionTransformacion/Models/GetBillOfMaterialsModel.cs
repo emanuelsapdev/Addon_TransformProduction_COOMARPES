@@ -1,3 +1,5 @@
+using System;
+
 namespace Addon_TransformProduction.Models
 {
     /// <summary>
@@ -11,5 +13,11 @@ namespace Addon_TransformProduction.Models
         public decimal Quantity { get; set; }
         public string Warehouse { get; set; }
         public string UoM { get; set; }
+        public decimal LastPurPrc { get; set; }
+        public string LastPurCur { get; set; }
+        public DateTime MnfDate { get; set; }
+        public DateTime AutoExpDate { get; set; }
+        public DateTime InDate { get; set; }
+        public string AutoBatchNumber { get; set; }
     }
 }

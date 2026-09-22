@@ -11,6 +11,8 @@ namespace Addon_TransformProduction.Models
         public string ItemCode { get; set; }
         public string BatchNumber { get; set; }
         public DateTime ExpDate { get; set; } 
+        public DateTime MnfDate { get; set; } 
+        public DateTime InDate { get; set; } 
         public string Warehouse { get; set; }
         public string UnitMeasurement { get; set; }
         public double QuantityAvailable { get; set; }

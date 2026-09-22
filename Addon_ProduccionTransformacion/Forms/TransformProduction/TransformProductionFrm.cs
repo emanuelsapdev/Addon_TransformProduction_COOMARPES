@@ -1,6 +1,7 @@
 ﻿using Addon_TransformProduction.Common;
 using Addon_TransformProduction.Services;
 using Addon_TransformProduction.Tools;
+using SAPbobsCOM;
 using SAPbouiCOM;
 using System;
 
@@ -117,22 +118,24 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     }
                 }
 
-                if(pVal.BeforeAction && pVal.EventType == BoEventTypes.et_ITEM_PRESSED
+                if (pVal.BeforeAction && pVal.EventType == BoEventTypes.et_ITEM_PRESSED
                     && pVal.ItemUID == CONSTANTS.UID.BUTTONS.CREATE && pVal.FormMode == (int)BoFormMode.fm_ADD_MODE)
                 {
                     SAPbouiCOM.Form oForm = null;
                     try
                     {
                         oForm = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
-                        int respuesta = ConnectionSDK.UIAPI.MessageBox("¿Confirma la creación y continuación con las transacciones correspondientes? De lo contrario, quedará pendiente para su posterior gestión.", 1, "Pendiente", "Crear", "Cancelar");
 
-                        if (respuesta == 2) // Crear
+                        int respuesta = ConnectionSDK.UIAPI.MessageBox("¿Confirma la creación y continuación con las transacciones correspondientes? De lo contrario, quedará pendiente para su posterior gestión.", 1, "Pendiente", "Crear", "Cancelar");
+                        var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+
+                        if (respuesta == 2) // Crear - Estado Completado (transaccionar Entrada y Salida)
                         {
-                            ManejarCreacionProduccion(oForm, out BubbleEvent);
+                            ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.COMPLETED;
                         }
-                        else if (respuesta == 1) // Pendiente
+                        else if (respuesta == 1) // Crear - Estado Pendiente
                         {
-                            ManejarCreacionProduccionPendiente(oForm, out BubbleEvent);
+                            ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.PENDING;
                         }
                         else
                         {
@@ -158,6 +161,81 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         public void OnFormDataEvent(ref BusinessObjectInfo boi, out bool BubbleEvent)
         {
             BubbleEvent = true;
+
+            if (boi.FormTypeEx == FormType && boi.EventType == BoEventTypes.et_FORM_DATA_ADD && !boi.BeforeAction)
+            {
+                SAPbouiCOM.Form oForm = null;
+                try
+                {
+                    oForm = ConnectionSDK.UIAPI.Forms.Item(boi.FormUID);
+                    string docEntry = ObtenerDocEntry(oForm);
+
+                    ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
+
+                    var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+
+                    switch (ctx.PrincipalStatus)
+                    {
+                        case CONSTANTS.STAGING_STATUS.COMPLETED:
+                            ManejarCreacionProduccion(oForm, out BubbleEvent);
+                            break;
+                        case CONSTANTS.STAGING_STATUS.PENDING:
+                            break;
+                    }
+
+                    CambiarTransformProductionStatus(Convert.ToInt32(docEntry), ctx.PrincipalStatus);
+
+                    AbrirDocumentosRelacionados(ctx);
+
+                }
+                finally
+                {
+                    if (oForm != null)
+                    {
+                        MarshalGC.LiberarComObject(oForm);
+                        oForm = null;
+                    }
+                }
+            }
+
+
+
+            if (boi.FormTypeEx == FormType && boi.EventType == BoEventTypes.et_FORM_DATA_LOAD && !boi.BeforeAction)
+            {
+                SAPbouiCOM.Form oForm = null;
+                try
+                {
+                    oForm = ConnectionSDK.UIAPI.Forms.Item(boi.FormUID);
+                    string status = LeereEstadoCabecera(oForm);
+
+                    oForm.Freeze(true);
+                    FormularioEnCualquierEstado(oForm);
+
+                    switch (status){
+                        case CONSTANTS.STAGING_STATUS.COMPLETED:
+                                FormularioEnEstadoCompletado(oForm);
+                            break;
+                        case CONSTANTS.STAGING_STATUS.PENDING:
+                                FormularioEnEstadoPendiente(oForm);
+                            break;
+                        case CONSTANTS.STAGING_STATUS.REVERT:
+                                FormularioEnEstadoRevertido(oForm);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                finally
+                {
+                    oForm.Freeze(false);
+
+                    if (oForm != null)
+                    {
+                        MarshalGC.LiberarComObject(oForm);
+                        oForm = null;
+                    }
+                }
+            }
         }
     }
 }

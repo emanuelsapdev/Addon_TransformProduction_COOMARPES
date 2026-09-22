@@ -1,0 +1,65 @@
+﻿ALTER VIEW ITPS_VW_TRANSFPROD_LOTES AS
+WITH MAT AS
+(
+    SELECT 
+        t0."Code",
+        t1."Code"      AS "ItemCode",
+        t1."ItemName",
+        t1."Quantity",
+        t1."Warehouse",
+        t2."InvntryUom",
+        t2."LastPurPrc",
+        t2."LastPurCur",
+        CURRENT_DATE   AS "MnfDate",
+        CURRENT_DATE   AS "InDate",
+        CASE
+            WHEN LEFT(t1."Code", 1) = 'C' THEN ADD_YEARS(CURRENT_DATE, 2)
+            WHEN LEFT(t1."Code", 1) = 'E' AND UPPER(t1."ItemName") LIKE 'FILET%' THEN ADD_YEARS(CURRENT_DATE, 2)
+            ELSE ADD_YEARS(CURRENT_DATE, 1)
+        END            AS "AutoExpDate",
+        t1."Code" || '-' || TO_VARCHAR(CURRENT_DATE, 'YYYYMMDD') || '-' AS "BatchPrefix"
+    FROM OITT t0
+    INNER JOIN ITT1 t1 ON t1."Father" = t0."Code"
+    INNER JOIN OITM t2 ON t2."ItemCode" = t1."Code"
+    WHERE t0."TreeType" = 'P'
+      AND t1."Type" = '4'
+     -- AND t0."Code" = 'Y01-110-S6'
+),
+SEQ AS
+(
+    SELECT
+        m.*,
+        COALESCE(
+            (
+                SELECT MAX(CAST(RIGHT(b."DistNumber", 3) AS INTEGER))
+                FROM OBTN b
+                WHERE b."ItemCode" = m."ItemCode"
+                  AND b."DistNumber" LIKE m."BatchPrefix" || '%'
+            ),
+            0
+        ) AS "LastSeq"
+    FROM MAT m
+)
+SELECT
+    s."Code",
+    s."ItemCode",
+    s."ItemName",
+    s."Quantity",
+    s."Warehouse",
+    s."InvntryUom",
+    s."LastPurPrc",
+    s."LastPurCur",
+    s."MnfDate",
+    s."AutoExpDate",
+    s."InDate",
+    s."BatchPrefix" ||
+    LPAD(
+        TO_VARCHAR(
+            s."LastSeq" +
+            ROW_NUMBER() OVER (PARTITION BY s."ItemCode" ORDER BY s."Warehouse", s."ItemName")
+        ),
+        3,
+        '0'
+    ) AS "AutoBatchNumber"
+FROM SEQ s
+ORDER BY s."ItemCode", s."Warehouse";

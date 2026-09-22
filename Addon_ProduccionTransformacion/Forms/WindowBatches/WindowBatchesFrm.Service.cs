@@ -33,7 +33,7 @@ namespace Addon_TransformProduction.Forms.WindowBatches
         private void PersistirSeleccionLotes(SAPbouiCOM.DataTable oDataTable, TransformProductionContext ctx)
         {
             ctx.BatchHeadXml = oDataTable.SerializeAsXML(SAPbouiCOM.BoDataTableXmlSelect.dxs_DataOnly);
-ctx.BatchHead = ObtenerLotesSeleccionados(oDataTable);
+            ctx.InventoryGenExitsData = ObtenerLotesSeleccionados(oDataTable, ctx);
         }
 
         /// <summary>

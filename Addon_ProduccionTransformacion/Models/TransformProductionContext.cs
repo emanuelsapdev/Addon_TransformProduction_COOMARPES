@@ -9,18 +9,22 @@ namespace Addon_TransformProduction.Models
     /// </summary>
     public class TransformProductionContext
     {
-        public string PrincipalItemCode { get; set; }
+        public string PrincipalItemCode { get; set; } = string.Empty;
         public double PrincipalQuantityConsumed { get; set; }
-        public string PrincipalStatus { get; set; }
+        public string PrincipalStatus { get; set; } = string.Empty;
 
         public string BatchHeadXml { get; set; } = string.Empty;
-        public List<BatchModel> BatchHead { get; set; } = new List<BatchModel>();
-        public Dictionary<string, List<BatchModel>> BatchDetail { get; set; } = new Dictionary<string, List<BatchModel>>();
 
         /// <summary>Referencia al formulario UDO de Producción/Transformación (abierto desde SAP).</summary>
         public SAPbouiCOM.Form FormTransfProd { get; set; }
 
         /// <summary>Referencia al formulario WindowBatches (selección de lotes), si está abierto.</summary>
         public SAPbouiCOM.Form FormBatches { get; set; }
+        
+        public InventoryGenModel InventoryGenExitsData { get; set; } = new InventoryGenModel();
+        public InventoryGenModel InventoryGenEntriesData { get; set; } = new InventoryGenModel();
+
+        public int InventoryGenExitsDocEntry { get; set; }
+        public int InventoryGenEntriesDocEntry { get; set; }
     }
 }

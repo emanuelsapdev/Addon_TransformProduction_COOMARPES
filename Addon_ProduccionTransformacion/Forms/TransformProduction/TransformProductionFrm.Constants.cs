@@ -42,8 +42,15 @@
                     public const string SUBPRODUCT_NAME = "ITPS_SubItemName";
                     public const string QUANTITY_OBTAINED = "ITPS_QtyObt";
                     public const string UNIT_MEASUREMENT = "ITPS_UoM";
+                    public const string WAREHOUSE = "ITPS_WhsCode";
                     public const string LAST_PUR_PRICE = "ITPS_LastPurPrice";
+                    public const string LAST_PUR_CUR = "ITPS_LastPurCur";
                     public const string PRICE = "ITPS_Price";
+                    public const string CURRENT = "ITPS_Curr";
+                    public const string BATCH_NUM = "ITPS_BatchNum";
+                    public const string EXTDATE_BATCH = "ITPS_ExpDateBatch";
+                    public const string MNFDATE_BATCH = "ITPS_MnfDateBatch";
+                    public const string INDATE_BATCH = "ITPS_InDateBatch";
                 }
 
                 public static class FIELDS_LINE_DB
@@ -54,8 +61,15 @@
                     public const string SUBPRODUCT_NAME = "U_" + FIELDS_LINE.SUBPRODUCT_NAME;
                     public const string QUANTITY_OBTAINED = "U_" + FIELDS_LINE.QUANTITY_OBTAINED;
                     public const string UNIT_MEASUREMENT = "U_" + FIELDS_LINE.UNIT_MEASUREMENT;
+                    public const string WAREHOUSE = "U_" + FIELDS_LINE.WAREHOUSE;
                     public const string LAST_PUR_PRICE = "U_" + FIELDS_LINE.LAST_PUR_PRICE;
+                    public const string LAST_PUR_CUR = "U_" + FIELDS_LINE.LAST_PUR_CUR;
                     public const string PRICE = "U_" + FIELDS_LINE.PRICE;
+                    public const string CURRENT = "U_" + FIELDS_LINE.CURRENT;
+                    public const string BATCH_NUM = "U_" + FIELDS_LINE.BATCH_NUM;
+                    public const string EXTDATE_BATCH = "U_" + FIELDS_LINE.EXTDATE_BATCH;
+                    public const string MNFDATE_BATCH = "U_" + FIELDS_LINE.MNFDATE_BATCH;
+                    public const string INDATE_BATCH = "U_" + FIELDS_LINE.INDATE_BATCH;
                 }
 
                 public static class FIELDS_HEAD_DESC
@@ -71,8 +85,15 @@
                     public const string SUBPRODUCT_NAME = "Nombre"; 
                     public const string QUANTITY_OBTAINED = "Cantidad Obtenida";
                     public const string UNIT_MEASUREMENT = "Unidad";
+                    public const string WAREHOUSE = "Almacén";
                     public const string LAST_PUR_PRICE = "Precio (Últ. Compra)";
-                    public const string PRICE = "Precio";
+                    public const string LAST_PUR_CUR = "Moneda (Últ. Compra)";
+                    public const string PRICE = "Precio (nuevo)";
+                    public const string CURRENT = "Moneda (nuevo)";
+                    public const string BATCH_NUM = "Número de Lote";
+                    public const string EXTDATE_BATCH = "Fecha de Expiración del Lote";
+                    public const string MNFDATE_BATCH = "Fecha de Fabricación del Lote";
+                    public const string INDATE_BATCH = "Fecha de Ingreso del Lote";
                 }
             }
 
@@ -107,6 +128,8 @@
                     public const string CANCEL = "2";
                     public const string REVERT = "Item_3";
                     public const string LOTE_SELECT = "Item_0";
+                    public const string CONFIRM_PROD = "Item_2";
+                    public const string SHOW_DOCUMENTS = "Item_5";
                 }
 
                 public static class GRID_COLUMNS
@@ -115,8 +138,15 @@
                     public const string SUBPRODUCT_NAME = "C_0_2";
                     public const string QUANTITY_OBTAINED = "C_0_3";
                     public const string UNIT_MEASUREMENT = "C_0_4";
-                    public const string LAST_PUR_PRICE = "C_0_5";
-                    public const string PRICE = "C_0_6";
+                    public const string WAREHOUSE = "C_0_5";
+                    public const string LAST_PUR_PRICE = "C_0_6";
+                    public const string LAST_PUR_CUR = "C_0_7";
+                    public const string PRICE = "C_0_8";
+                    public const string CURRENT = "C_0_9";
+                    public const string BATCH_NUM = "C_0_10";
+                    public const string EXTDATE_BATCH = "C_0_11";
+                    public const string MNFDATE_BATCH = "C_0_12";
+                    public const string INDATE_BATCH = "C_0_13";
                 }
             }
 

@@ -147,6 +147,13 @@ namespace Addon_TransformProduction.Configuration
 
                 InfraDataService.CrearCampoUsuario(
                     tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.WAREHOUSE,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.WAREHOUSE,
+                    type: BoFieldTypes.db_Alpha,
+                    linkedSystemObject: UDFLinkedSystemObjectTypesEnum.ulWarehouses);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
                     fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.LAST_PUR_PRICE,
                     desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.LAST_PUR_PRICE,
                     type: BoFieldTypes.db_Float,
@@ -154,10 +161,49 @@ namespace Addon_TransformProduction.Configuration
 
                 InfraDataService.CrearCampoUsuario(
                     tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.LAST_PUR_CUR,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.LAST_PUR_CUR,
+                    type: BoFieldTypes.db_Alpha,
+                    size: 10);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
                     fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.PRICE,
                     desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.PRICE,
                     type: BoFieldTypes.db_Float,
                     subType: BoFldSubTypes.st_Price);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.CURRENT,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.CURRENT,
+                    type: BoFieldTypes.db_Alpha,
+                    size: 10);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.BATCH_NUM,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.BATCH_NUM,
+                    type: BoFieldTypes.db_Alpha,
+                    size: 50);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.EXTDATE_BATCH,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.EXTDATE_BATCH,
+                    type: BoFieldTypes.db_Date);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.MNFDATE_BATCH,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.MNFDATE_BATCH,
+                    type: BoFieldTypes.db_Date);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE.INDATE_BATCH,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_LINE_DESC.INDATE_BATCH,
+                    type: BoFieldTypes.db_Date);
             }
             catch (Exception ex)
             {

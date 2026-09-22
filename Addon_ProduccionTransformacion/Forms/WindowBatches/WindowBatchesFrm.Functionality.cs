@@ -3,6 +3,7 @@ using Addon_TransformProduction.Services;
 using SAPbouiCOM;
 using System;
 using System.Collections.Generic;
+using static Addon_TransformProduction.Models.InventoryGenModel;
 
 namespace Addon_TransformProduction.Forms.WindowBatches
 {
@@ -48,29 +49,61 @@ namespace Addon_TransformProduction.Forms.WindowBatches
 
         /// <summary>
         /// Extrae los lotes marcados (check = "Y") con cantidad asignada mayor a cero
-        /// del DataTable del formulario de lotes.
+        /// del DataTable del formulario de lotes. Si hay lotes seleccionados en distintos
+        /// almacenes, se genera una línea por almacén en el InventoryGenModel.
         /// </summary>
-        public List<BatchModel> ObtenerLotesSeleccionados(SAPbouiCOM.DataTable oDataTable)
+        public InventoryGenModel ObtenerLotesSeleccionados(SAPbouiCOM.DataTable oDataTable, TransformProductionContext ctx)
         {
-            var resultado = new List<BatchModel>();
+            var invGen = new InventoryGenModel();
+
+            // Agrupar Items por almacén
+            var itemsPorAlmacen = new Dictionary<string, InventoryGenModel.Item>(StringComparer.OrdinalIgnoreCase);
 
             for (int i = 0; i < oDataTable.Rows.Count; i++)
             {
-                string batch = oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.BATCH, i);
-                double qtyAssigned = Convert.ToDouble(oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.QTY_ASSIGNED, i));
+                string batchNum = oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.BATCH, i);
+                double qty = Convert.ToDouble(oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.QTY_ASSIGNED, i));
                 string check = oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.CHECK, i);
+                string whs = oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.WAREHOUSE, i) ?? string.Empty;
 
-                if (qtyAssigned > 0 && check == "Y")
+                if (qty <= 0 || check != "Y")
                 {
-                    resultado.Add(new BatchModel
-                    {
-                        BatchNumber = batch,
-                        QuantityAssigned = qtyAssigned
-                    });
+                    continue;
                 }
+
+                // Obtener o crear la línea para este almacén
+                if (!itemsPorAlmacen.TryGetValue(whs, out var item))
+                {
+                    item = new InventoryGenModel.Item
+                    {
+                        ItemCode = ctx.PrincipalItemCode,
+                        Warehouse = whs,
+                        Quantity = 0d
+                    };
+
+                    itemsPorAlmacen.Add(whs, item);
+                }
+
+                // Crear el batch y añadirlo a la línea correspondiente
+                var batchMdl = new InventoryGenModel.Item.Batch
+                {
+                    BatchNumber = batchNum,
+                    Quantity = qty
+                };
+
+                item.AddBatch(batchMdl);
+
+                // Sumar la cantidad del batch a la cantidad total de la línea
+                item.Quantity += qty;
             }
 
-            return resultado;
+            // Añadir todas las líneas agrupadas al modelo de inventario
+            foreach (var kvp in itemsPorAlmacen)
+            {
+                invGen.Items.Add(kvp.Value);
+            }
+
+            return invGen;
         }
     }
 }

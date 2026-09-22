@@ -15,7 +15,7 @@ namespace Addon_TransformProduction.Forms.WindowBatches
         /// <returns>
         /// Recordset con las columnas: "Batch", "Warehouse", "QtyTotal", "QtyAssigned", "ExpDate".
         /// </returns>
-        public Recordset ObtenerLotesPorArticulo(Recordset oRec, string itemCode)
+        public Recordset ObtenerLotesPorArticulo(Recordset oRec, string itemCode, string warehouse = "")
         {
             if (oRec == null) throw new ArgumentNullException(nameof(oRec));
             if (string.IsNullOrWhiteSpace(itemCode)) return null;
@@ -33,6 +33,7 @@ namespace Addon_TransformProduction.Forms.WindowBatches
                                 INNER JOIN OBTQ T1
                                     ON T1.""SysNumber"" = T0.""SysNumber"" AND T1.""ItemCode"" = T0.""ItemCode"" 
                                 WHERE T0.""ItemCode"" = '{SqlEscapeHelper.EscapeSql(itemCode)}' AND T1.""Quantity"" > 0
+                                AND (T1.""WhsCode"" = '{SqlEscapeHelper.EscapeSql(warehouse)}' OR '{SqlEscapeHelper.EscapeSql(warehouse)}' = '')
                                 ORDER BY ""ExpDate"" ASC;
                                 ";
                 oRec.DoQuery(q);

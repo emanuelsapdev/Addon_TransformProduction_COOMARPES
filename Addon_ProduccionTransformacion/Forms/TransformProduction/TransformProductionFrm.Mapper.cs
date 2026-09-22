@@ -25,7 +25,13 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     SubItemName = fields.Item("ItemName").Value,
                     Quantity = Convert.ToDecimal(fields.Item("Quantity").Value),
                     Warehouse = fields.Item("Warehouse").Value,
-                    UoM = fields.Item("InvntryUom").Value
+                    UoM = fields.Item("InvntryUom").Value,
+                    LastPurPrc = Convert.ToDecimal(fields.Item("LastPurPrc").Value),
+                    LastPurCur = fields.Item("LastPurCur").Value,
+                    MnfDate = Convert.ToDateTime(fields.Item("MnfDate").Value),
+                    AutoExpDate = Convert.ToDateTime(fields.Item("AutoExpDate").Value),
+                    InDate = Convert.ToDateTime(fields.Item("InDate").Value),
+                    AutoBatchNumber = fields.Item("AutoBatchNumber").Value
                 });
                 recordset.MoveNext();
             }
