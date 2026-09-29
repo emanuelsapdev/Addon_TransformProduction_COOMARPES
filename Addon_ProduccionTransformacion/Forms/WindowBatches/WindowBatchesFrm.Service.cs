@@ -49,7 +49,7 @@ namespace Addon_TransformProduction.Forms.WindowBatches
                 ConstruirFormulario(typeCount);
             }
 
-            var oForm = ConnectionSDK.UIAPI.Forms.Item(CONSTANTS.FORM_UNIQUE_ID);
+            var oForm = ConnectionSDK.UIAPI.Forms.Item(CONSTANTS.ObtenerFormUID(typeCount));
             CargarLotesContextoActual(oForm, typeCount);
         }
 
