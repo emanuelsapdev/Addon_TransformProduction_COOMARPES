@@ -8,11 +8,14 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
 
 ## 🔴 Críticos
 
-- [ ] **TP-01 — Doble reversión.** `ManejarReversionTransformacion` (Handlers) no deshabilita
+- [x] **TP-01 — Doble reversión.** `ManejarReversionTransformacion` (Handlers) no deshabilita
   el botón Revertir ni recarga el formulario: el form sigue con los DocEntry originales y un
   segundo click genera otra vez los documentos de reversión.
   *Propuesta:* validar que el estado persistido sea Completado y que no haya DocEntry de
   reversión; al terminar, recargar el registro (y con eso `FormularioEnEstadoRevertido`).
+  *Hecho:* se valida contra la cabecera leída de la base (`PuedeRevertirse`), el botón se
+  deshabilita al confirmar, el update del UDO va dentro de la transacción de reversión y al
+  terminar se recarga el registro (`RecargarRegistro`, modo OK). Pendiente de probar en SAP.
 - [ ] **TP-02 — Formulario de lotes con UID fijo.** `WindowBatchesFrm.ConstruirFormulario` no
   modifica el XML: el form queda `WINDOW_BATCHES` en vez de `WINDOW_BATCHES_{typeCount}`.
   - `ObtenerTypeCount` devuelve null → se usa el TypeCount del form de lotes (1) → los lotes

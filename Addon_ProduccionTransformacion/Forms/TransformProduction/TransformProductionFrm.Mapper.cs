@@ -58,6 +58,27 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             };
         }
 
+        /// <summary>
+        /// Mapea la cabecera persistida del UDO (ver <see cref="ObtenerCabeceraUdoPersistida"/>)
+        /// a un <see cref="TransformProductionUdoModel"/>, o null si el Recordset no tiene filas.
+        /// </summary>
+        public TransformProductionUdoModel MapearCabeceraUdo(Recordset recordset)
+        {
+            if (recordset == null || recordset.EoF) return null;
+
+            var fields = recordset.Fields;
+            return new TransformProductionUdoModel
+            {
+                Status = Convert.ToString(fields.Item(CONSTANTS.TABLES.FIELDS_HEAD_DB.STATUS).Value) ?? string.Empty,
+                ItemCode = Convert.ToString(fields.Item(CONSTANTS.TABLES.FIELDS_HEAD_DB.ITEMCODE).Value) ?? string.Empty,
+                Quantity = Convert.ToDouble(fields.Item(CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY).Value),
+                EntryDocEntry = Convert.ToInt32(fields.Item(CONSTANTS.TABLES.FIELDS_HEAD_DB.ENTRY_DOC_ENTRY).Value),
+                ExitDocEntry = Convert.ToInt32(fields.Item(CONSTANTS.TABLES.FIELDS_HEAD_DB.EXIT_DOC_ENTRY).Value),
+                EntryRevDocEntry = Convert.ToInt32(fields.Item(CONSTANTS.TABLES.FIELDS_HEAD_DB.ENTRY_REV_DOC_ENTRY).Value),
+                ExitRevDocEntry = Convert.ToInt32(fields.Item(CONSTANTS.TABLES.FIELDS_HEAD_DB.EXIT_REV_DOC_ENTRY).Value)
+            };
+        }
+
         private static int ParseInt(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return 0;

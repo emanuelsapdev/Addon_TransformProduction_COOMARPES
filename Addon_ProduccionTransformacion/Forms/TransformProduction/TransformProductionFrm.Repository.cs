@@ -50,6 +50,41 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Cabecera persistida del UDO (estado y DocEntry de entrada/salida/reversión), leída
+        /// de la base y no del formulario, que puede estar desactualizado.
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <param name="docEntry">DocEntry del registro UDO.</param>
+        /// <returns>
+        /// Recordset con las columnas de <see cref="CONSTANTS.TABLES.FIELDS_HEAD_DB"/>
+        /// (sin filas si el registro no existe).
+        /// </returns>
+        public Recordset ObtenerCabeceraUdoPersistida(Recordset oRec, int docEntry)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            try
+            {
+                oRec.DoQuery($@"SELECT
+                                ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.STATUS}"",
+                                ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.ITEMCODE}"",
+                                ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY}"",
+                                ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.ENTRY_DOC_ENTRY}"",
+                                ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.EXIT_DOC_ENTRY}"",
+                                ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.ENTRY_REV_DOC_ENTRY}"",
+                                ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.EXIT_REV_DOC_ENTRY}""
+                                FROM ""{CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT}""
+                                WHERE ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.DOCENTRY}"" = {docEntry};");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Crea la entrada de mercancía (Goods Receipt, artículos obtenidos de la transformación)
         /// a partir de <see cref="TransformProductionContext.InventoryGenEntriesData"/>.
         /// </summary>

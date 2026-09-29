@@ -217,6 +217,11 @@
                 public static string FORM_OPEN_ERROR_PREFIX = "Error abriendo un documento nuevo de producción/transformación: ";
                 public static string FORM_INIT_ERROR_PREFIX = "Error inicializando el formulario de producción/transformación: ";
                 public static string CFL_ITEM_BUILD_ERROR_PREFIX = "Error creando el campo Producto con la lista de artículos con lista de materiales: ";
+
+                public static string REVERT_NOT_COMPLETED = "Solo se puede revertir un documento en estado " + STAGING_STATUS.COMPLETED + ". Estado actual: ";
+                public static string REVERT_ALREADY_DONE = "La producción/transformación ya fue revertida (existen documentos de reversión).";
+                public static string REVERT_NOT_SAVED = "Guarde el documento antes de revertirlo.";
+                public static string REVERT_UDO_UPDATE_ERROR = "No se pudo actualizar el estado del documento a " + STAGING_STATUS.REVERT + ".";
             }
 
         }
