@@ -117,6 +117,14 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return;
             }
 
+            // Antes de abrir el ChooseFromList de Producto se filtra a artículos con lista de materiales.
+            if (pVal.BeforeAction && pVal.EventType == BoEventTypes.et_CHOOSE_FROM_LIST
+                && pVal.ItemUID == CONSTANTS.UID.HEADER.ITEM_CODE)
+            {
+                ManejarChooseFromListArticulo(pVal.FormUID, ((IChooseFromListEvent)pVal).ChooseFromListUID);
+                return;
+            }
+
             // Al perder el foco el código de artículo se consulta el BOM y se pinta la grilla.
             if (pVal.ActionSuccess && pVal.EventType == BoEventTypes.et_LOST_FOCUS
                 && pVal.ItemUID == CONSTANTS.UID.HEADER.ITEM_CODE)

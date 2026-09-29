@@ -48,6 +48,32 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Antes de abrir el ChooseFromList del campo "Producto" (et_CHOOSE_FROM_LIST,
+        /// BeforeAction) le aplica el filtro de artículos con lista de materiales. Se filtra el
+        /// CFL que SAP ya tiene asignado al campo (UDF vinculado a Artículos) en vez de
+        /// reemplazarlo, porque SAP no permite cambiar el ChooseFromListUID de ese campo.
+        /// </summary>
+        public void ManejarChooseFromListArticulo(string formUid, string cflUid)
+        {
+            if (string.IsNullOrWhiteSpace(cflUid)) return;
+
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+                AplicarFiltroListaMateriales(oForm, cflUid);
+            }
+            catch (Exception ex)
+            {
+                NotificationService.MostrarError(CONSTANTS.MESSAGES.CFL_ITEM_FILTER_ERROR_PREFIX + ex.Message);
+            }
+            finally
+            {
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+        }
+
+        /// <summary>
         /// Orquesta el flujo al perder el foco el campo de cantidad consumida de la cabecera:
         /// lee la cantidad, la valida y actualiza el contexto.
         /// </summary>

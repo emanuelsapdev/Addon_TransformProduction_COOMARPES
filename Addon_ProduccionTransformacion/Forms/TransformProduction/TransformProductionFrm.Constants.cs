@@ -149,15 +149,13 @@
                 }
 
                 /// <summary>
-                /// ChooseFromList del campo "Producto" de la cabecera (ITEM_CODE): lista de
-                /// artículos (OITM, ObjectType 4) filtrada a los que tienen lista de materiales
-                /// de producción (OITM."TreeType" = 'P'), mismo criterio que ITPS_VW_TRANSFPROD_LOTES.
+                /// Filtro del ChooseFromList del campo "Producto" de la cabecera (ITEM_CODE): solo
+                /// artículos con lista de materiales de producción (OITM."TreeType" = 'P'), mismo
+                /// criterio que ITPS_VW_TRANSFPROD_LOTES. Se aplica sobre el CFL que SAP asigna al
+                /// UDF vinculado a Artículos (no se puede reemplazar: da "Invalid item").
                 /// </summary>
                 public static class CHOOSE_FROM_LIST
                 {
-                    public const string ITEM_CODE = "itpsCflArt";
-                    public const string ITEM_OBJECT_TYPE = "4";
-                    public const string ITEM_ALIAS = "ItemCode";
                     public const string TREE_TYPE_ALIAS = "TreeType";
                     public const string TREE_TYPE_PRODUCTION = "P";
                 }
@@ -201,7 +199,7 @@
                 public static string MENU_REGISTER_ERROR_PREFIX = "Error registrando el menú del addon: ";
                 public static string FORM_OPEN_ERROR_PREFIX = "Error abriendo un documento nuevo de producción/transformación: ";
                 public static string FORM_INIT_ERROR_PREFIX = "Error inicializando el formulario de producción/transformación: ";
-                public static string CFL_ITEM_CONFIG_ERROR_PREFIX = "Error configurando la lista de selección de artículos con lista de materiales: ";
+                public static string CFL_ITEM_FILTER_ERROR_PREFIX = "Error filtrando la lista de selección de artículos con lista de materiales: ";
             }
 
         }
