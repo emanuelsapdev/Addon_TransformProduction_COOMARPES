@@ -277,8 +277,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
             oItemBtnRevert.Enabled = true;
 
-            SAPbouiCOM.Item oItemQuantity = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY);
-            oItemQuantity.Enabled = false;
+            // Documento cerrado: grilla, Producto y Cantidad consumida de solo lectura.
+            EstablecerEdicionDocumento(oForm, false);
         }
 
         public static void FormularioEnEstadoPendiente(SAPbouiCOM.Form oForm) 
@@ -295,8 +295,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
             oItemBtnRevert.Enabled = false;
 
-            SAPbouiCOM.Item oItemQuantity = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY);
-            oItemQuantity.Enabled = true;
+            // Grilla y Cantidad consumida editables (vuelve de un Completado/Revertido navegado).
+            EstablecerEdicionDocumento(oForm, true);
         }
 
         public static void FormularioEnEstadoRevertido(SAPbouiCOM.Form oForm) 
@@ -310,8 +310,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
             oItemBtnRevert.Enabled = false;
 
-            SAPbouiCOM.Item oItemQuantity = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY);
-            oItemQuantity.Enabled = false;
+            // Documento cerrado: grilla, Producto y Cantidad consumida de solo lectura.
+            EstablecerEdicionDocumento(oForm, false);
         }
 
         /// <summary>
