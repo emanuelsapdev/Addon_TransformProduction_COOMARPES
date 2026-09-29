@@ -89,13 +89,14 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_Commit);
 
                 ReferenciarDocs(entryDocEntry, BoObjectTypes.oInventoryGenEntry, exitDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
+                ReferenciarDocs(exitDocEntry, BoObjectTypes.oInventoryGenExit, entryDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
 
                 return true;
             }
             catch (Exception ex)
             {
-                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);   
                 NotificationService.MostrarError($"Error creando la producción (Entrada/Salida de mercancía): {ex.Message}");
+                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);   
                 return false;
             }
         }

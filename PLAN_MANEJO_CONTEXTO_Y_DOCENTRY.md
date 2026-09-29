@@ -602,16 +602,16 @@ Al persistir nueva selección (`PersistirSeleccionLotes`) se sigue guardando
 
 ## 7. Tareas / checklist
 
-- [ ] `InfraConfig.cs`: 5 UDFs en cabecera (4 numéricos + 1 memo).
-- [ ] `Constants.cs`: constantes de los 5 campos (`FIELDS_HEAD`, `FIELDS_HEAD_DB`, `FIELDS_HEAD_DESC`).
-- [ ] `Models/TransformProductionUdoModel.cs`: DTO de cabecera.
-- [ ] `Mapper.cs`: `SerializarExitData`, `DeserializarExitData`, `MapearCabeceraUdo`.
-- [ ] `FormReader.cs`: `LeerCabeceraUdo`, `ReconstruirContextoDesdeForm`.
-- [ ] `Repository.cs`: `ActualizarResultadoTransformacion` (reemplaza `CambiarTransformProductionStatus`).
-- [ ] Shell `.cs`: ruteo de `CONFIRM_PROD`, `SHOW_DOCUMENTS`, `REVERT`; update unificado en `FORM_DATA_ADD`.
-- [ ] `FORM_DATA_LOAD`: reconstrucción del contexto.
-- [ ] `Handlers.cs`: `ManejarConfirmarProduccion`, `ManejarVerDocumentos`, `ManejarReversionTransformacion`.
-- [ ] `Functionality.cs`: guard de `AbrirDocumentosRelacionados`.
-- [ ] `WindowBatches`: merge de selección persistida al abrir el grid.
-- [ ] B1 Studio: campos nuevos read-only/hidden en el diseño del form.
-- [ ] Compilar con MSBuild (`.sln`), no hay tests/CI.
+- [x] `InfraConfig.cs`: 5 UDFs en cabecera (4 numéricos + 1 memo).
+- [x] `Constants.cs`: constantes de los 5 campos (`FIELDS_HEAD`, `FIELDS_HEAD_DB`, `FIELDS_HEAD_DESC`).
+- [x] `Models/TransformProductionUdoModel.cs`: DTO de cabecera.
+- [x] `Mapper.cs`: `SerializarExitData`, `DeserializarExitData`, `MapearCabeceraUdo`.
+- [x] `FormReader.cs`: `LeerCabeceraUdo`, `ReconstruirContextoDesdeForm`.
+- [x] `Repository.cs`: `ActualizarResultadoTransformacion` (reemplaza `CambiarTransformProductionStatus`).
+- [x] Shell `.cs`: ruteo de `CONFIRM_PROD`, `SHOW_DOCUMENTS`, `REVERT`; update unificado en `FORM_DATA_ADD`.
+- [x] `FORM_DATA_LOAD`: reconstrucción del contexto.
+- [x] `Handlers.cs`: `ManejarConfirmarProduccion`, `ManejarVerDocumentos`, `ManejarReversionTransformacion`.
+- [x] `Functionality.cs`: guard de `AbrirDocumentosRelacionados`.
+- [x] `WindowBatches`: merge de selección persistida al abrir el grid.
+- [x] B1 Studio: campos nuevos read-only/hidden en el diseño del form.
+- [x] Compilar con MSBuild (`.sln`), no hay tests/CI.

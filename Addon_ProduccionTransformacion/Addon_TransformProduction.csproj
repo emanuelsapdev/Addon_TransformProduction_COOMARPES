@@ -273,12 +273,6 @@
     <Compile Include="Configuration\AppConfig.cs" />
     <Compile Include="Configuration\InfraConfig.cs" />
     <Compile Include="ContextManager.cs" />
-    <Compile Include="Forms\ActualizacionCostos\ActualizacionCostosFrm.Constants.cs" />
-    <Compile Include="Forms\ActualizacionCostos\ActualizacionCostosFrm.cs" />
-    <Compile Include="Forms\ActualizacionCostos\ActualizacionCostosFrm.FormReader.cs" />
-    <Compile Include="Forms\ActualizacionCostos\ActualizacionCostosFrm.Functionality.cs" />
-    <Compile Include="Forms\ActualizacionCostos\ActualizacionCostosFrm.Service.cs" />
-    <Compile Include="Forms\ActualizacionCostos\ActualizacionCostosFrm.UIBuilder.cs" />
     <Compile Include="Forms\TransformProduction\TransformProductionFrm.Constants.cs" />
     <Compile Include="Forms\TransformProduction\TransformProductionFrm.cs" />
     <Compile Include="Forms\TransformProduction\TransformProductionFrm.FormReader.cs" />
@@ -302,6 +296,7 @@
     <Compile Include="Models\InventoryGenModel.cs" />
     <Compile Include="Models\GetBillOfMaterialsModel.cs" />
     <Compile Include="Models\TransformProductionContext.cs" />
+    <Compile Include="Models\TransformProductionUdoModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repositories\ItemMasterRepository.cs" />
@@ -317,16 +312,12 @@
   <ItemGroup>
     <None Include=".github\agents\AddonSAP.agent.md" />
     <None Include="App.config" />
-    <None Include="Forms\ActualizacionCostos\B1 Studio\ActualizacionCostosArtsFrm.b1s" />
     <None Include="Forms\TransformProduction\B1 Studio\TransformProductionFrm.b1s" />
     <None Include="Forms\WindowBatches\B1 Studio\WindowBatches.b1s" />
     <None Include="packages.config" />
     <None Include="Properties\launchSettings.json" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Forms\ActualizacionCostos\B1 Studio\ActualizacionCostosArtsFrm.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Forms\TransformProduction\B1 Studio\TransformProductionFrm.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

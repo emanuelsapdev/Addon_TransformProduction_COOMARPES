@@ -1,6 +1,8 @@
 ﻿using Addon_TransformProduction.Common;
 using Addon_TransformProduction.Forms.WindowBatches;
 using Addon_TransformProduction.Services;
+using Addon_TransformProduction.Tools;
+using SAPbobsCOM;
 using SAPbouiCOM;
 using System;
 
@@ -65,10 +67,13 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         {
             string itemCode = LeerCodigoArticulo(oForm);
             string qtyConsumed = LeerCantidadConsumida(oForm);
+            string status = LeereEstadoCabecera(oForm);
 
-            SAPbouiCOM.Item oItem = oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT);
-
-            oItem.Enabled = !string.IsNullOrWhiteSpace(itemCode) && EsCantidadConsumidaValida(qtyConsumed, out _);
+            if(status == CONSTANTS.STAGING_STATUS.PENDING)
+            {
+                SAPbouiCOM.Item oItem = oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT);
+                oItem.Enabled = !string.IsNullOrWhiteSpace(itemCode) && EsCantidadConsumidaValida(qtyConsumed, out _);
+            }
         }
 
         /// <summary>
@@ -110,8 +115,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
             oMatrix.FlushToDataSource();
 
-            var oDbDataSource = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
-            ctx.InventoryGenEntriesData = ObtenerInfoLineas(oDbDataSource);
+            
+            ctx.InventoryGenEntriesData = ObtenerInfoLineas(oForm);
 
             if (!CrearProduccion(ctx, out int entryDocEntry, out int exitDocEntry))
             {
@@ -136,6 +141,131 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
 
             //CrearProduccionPendiente(ctx);
+        }
+
+        /// <summary>
+        /// Crea los documentos definitivos (IGN de subproductos + IGO del principal) desde un
+        /// documento Pendiente reabierto: la entrada se reconstruye desde las líneas del UDO y
+        /// la salida desde la selección de lotes en memoria (el usuario la re-elige al abrir el
+        /// documento Pendiente; no se persiste en la base).
+        /// </summary>
+        public void ManejarConfirmarProduccion(SAPbouiCOM.Form oForm, out bool BubbleEvent)
+        {
+            BubbleEvent = true;
+            var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+
+            if (!ValidarFormulario(oForm, ctx)) { BubbleEvent = false; return; }
+
+            var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
+            oMatrix.FlushToDataSource();
+            ctx.InventoryGenEntriesData = ObtenerInfoLineas(oForm); // entrada desde líneas UDO
+
+            if (!CrearProduccion(ctx, out int entryDocEntry, out int exitDocEntry))
+            { BubbleEvent = false; return; }
+
+            ctx.InventoryGenEntriesDocEntry = entryDocEntry;
+            ctx.InventoryGenExitsDocEntry = exitDocEntry;
+
+            ActualizarResultadoTransformacion(
+                Convert.ToInt32(ObtenerDocEntry(oForm)),
+                CONSTANTS.STAGING_STATUS.COMPLETED,
+                entryDocEntry, exitDocEntry);
+
+            EscribirEstadoCabecera(oForm, ctx.PrincipalStatus);
+            AbrirDocumentosRelacionados(ctx);
+        }
+
+        /// <summary>
+        /// Abre los documentos de mercancía (IGN/IGO) desde los DocEntry persistidos en la
+        /// cabecera del UDO (restart-safe), no desde el contexto en memoria.
+        /// </summary>
+        public void ManejarVerDocumentos(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+                var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+                ReconstruirContextoDesdeForm(oForm, ctx);
+                AbrirDocumentosRelacionados(ctx);
+            }
+            finally
+            {
+                if (oForm != null)
+                {
+                    MarshalGC.LiberarComObject(oForm);
+                    oForm = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reversión cruzada: la entrada (IGN de subproductos) se revierte con una salida (IGO)
+        /// y la salida (IGO del principal) con una entrada (IGN). Persiste los DocEntry de
+        /// reversión y deja el documento en estado Revertido.
+        /// </summary>
+        public void ManejarReversionTransformacion(SAPbouiCOM.Form oForm, out bool BubbleEvent)
+        {
+            BubbleEvent = true;
+            var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+
+            ReconstruirContextoDesdeForm(oForm, ctx);
+            int docEntryUnit = Convert.ToInt32(ObtenerDocEntry(oForm));
+
+            // La salida (lotes del principal) no se persiste en el UDO: si el documento fue
+            // reabierto y no quedó selección en memoria, se reconstruye desde el Goods Issue
+            // original (OIGE) para poder revertirla.
+            if (ctx.InventoryGenExitsDocEntry > 0 && ctx.InventoryGenExitsData.Items.Count == 0)
+                ctx.InventoryGenExitsData = ObtenerExitDataDesdeDocumento(ctx.InventoryGenExitsDocEntry);
+
+            int respuesta = ConnectionSDK.UIAPI.MessageBox(
+                "¿Confirma la reversión de la producción/transformación? Se generarán los documentos de reversión de entrada y salida.",
+                1, "Cancelar", "Reversión");
+
+            if (respuesta != 2) return; // 1 = botón "Cancelar"
+
+            int entryRevDocEntry = 0, exitRevDocEntry = 0;
+
+            try
+            {
+                ConnectionSDK.DIAPI.StartTransaction();
+
+                // Revertir la SALIDA (IGO del principal) ⇒ generar una ENTRADA (IGN).
+                if (ctx.InventoryGenExitsDocEntry > 0 && ctx.InventoryGenExitsData.Items.Count > 0)
+                {
+                    exitRevDocEntry = CrearEntradaMercancia(ctx.InventoryGenExitsData);
+                    ReferenciarDocs(exitRevDocEntry, BoObjectTypes.oInventoryGenEntry,
+                                    ctx.InventoryGenExitsDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
+                }
+
+                // Revertir la ENTRADA (IGN de subproductos) ⇒ generar una SALIDA (IGO).
+                if (ctx.InventoryGenEntriesDocEntry > 0)
+                {
+                   
+                    var entriesData = ObtenerInfoLineas(oForm); // subproductos de la línea UDO
+                    if (entriesData.Items.Count > 0)
+                    {
+                        entryRevDocEntry = CrearSalidaMercancia(entriesData);
+                        ReferenciarDocs(entryRevDocEntry, BoObjectTypes.oInventoryGenExit,
+                                        ctx.InventoryGenEntriesDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
+                    }
+                }
+
+                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_Commit);
+            }
+            catch (Exception ex)
+            {
+                NotificationService.MostrarError($"Error revirtiendo la producción: {ex.Message}");
+                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);
+                return;
+            }
+
+            ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.REVERT;
+            ActualizarResultadoTransformacion(docEntryUnit, CONSTANTS.STAGING_STATUS.REVERT,
+                entryRevDocEntry: entryRevDocEntry > 0 ? entryRevDocEntry : (int?)null,
+                exitRevDocEntry: exitRevDocEntry > 0 ? exitRevDocEntry : (int?)null);
+
+            EscribirEstadoCabecera(oForm, ctx.PrincipalStatus);
         }
     }
 }

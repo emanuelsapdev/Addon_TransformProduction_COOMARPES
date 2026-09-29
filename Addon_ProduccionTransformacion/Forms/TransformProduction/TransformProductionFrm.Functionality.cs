@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Addon_TransformProduction.Forms.TransformProduction
@@ -64,9 +65,11 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// <summary>
         /// 
         /// </summary>
-        public InventoryGenModel ObtenerInfoLineas(SAPbouiCOM.DBDataSource oDbDataSource)
+        public InventoryGenModel ObtenerInfoLineas(SAPbouiCOM.Form oForm)
         {
             var invGen = new InventoryGenModel();
+            var oDbDataSource = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
+
             if (oDbDataSource == null) return invGen;
 
             var itemsIndex = new Dictionary<string, InventoryGenModel.Item>(StringComparer.OrdinalIgnoreCase);
@@ -182,6 +185,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
             oItemBtnRevert.Enabled = true;
+
+            SAPbouiCOM.Item oItemQuantity = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY);
+            oItemQuantity.Enabled = false;
         }
 
         public static void FormularioEnEstadoPendiente(SAPbouiCOM.Form oForm) 
@@ -197,6 +203,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
             oItemBtnRevert.Enabled = false;
+
+            SAPbouiCOM.Item oItemQuantity = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY);
+            oItemQuantity.Enabled = true;
         }
 
         public static void FormularioEnEstadoRevertido(SAPbouiCOM.Form oForm) 
@@ -209,12 +218,26 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
             oItemBtnRevert.Enabled = false;
+
+            SAPbouiCOM.Item oItemQuantity = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY);
+            oItemQuantity.Enabled = false;
         }
 
         public static void AbrirDocumentosRelacionados(TransformProductionContext ctx)
         {
-            ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsIssue, null, ctx.InventoryGenExitsDocEntry.ToString());
-            ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsReceipt, null, ctx.InventoryGenEntriesDocEntry.ToString());
+            if (ctx == null) return;
+
+            if (ctx.InventoryGenExitsDocEntry > 0)
+                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsIssue, null, ctx.InventoryGenExitsDocEntry.ToString());
+
+            if (ctx.InventoryGenEntriesDocEntry > 0)
+                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsReceipt, null, ctx.InventoryGenEntriesDocEntry.ToString());
+
+            if (ctx.InventoryGenExitsDocEntry > 0)
+                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsIssue, null, ctx.InventoryGenExitsDocEntry.ToString());
+
+            if (ctx.InventoryGenEntriesDocEntry > 0)
+                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsReceipt, null, ctx.InventoryGenEntriesDocEntry.ToString());
         }
     }
 }

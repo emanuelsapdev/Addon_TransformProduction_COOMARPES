@@ -27,8 +27,9 @@ namespace Addon_TransformProduction.Forms.WindowBatches
         }
 
         /// <summary>
-        /// Guarda los lotes seleccionados en el contexto de la producción: el XML crudo del
-        /// DataTable (para restaurar la grilla al reabrir) y la lista de BatchModel.
+        /// Guarda los lotes seleccionados en el contexto en memoria de la producción: el XML
+        /// crudo del DataTable (para restaurar la grilla al reabrir el form de lotes dentro de
+        /// la misma sesión) y la lista de BatchModel. Nada se persiste en la base.
         /// </summary>
         private void PersistirSeleccionLotes(SAPbouiCOM.DataTable oDataTable, TransformProductionContext ctx)
         {
@@ -82,36 +83,39 @@ namespace Addon_TransformProduction.Forms.WindowBatches
 
         private void CargarGrillaLotes(SAPbouiCOM.Form oForm, TransformProductionContext ctx)
         {
+            // Si ya hay una selección en memoria (misma sesión, documento Pendiente sin
+            // guardar/navegar) se restaura el DataTable; si no, se vuelve a consultar SAP.
             if (!string.IsNullOrEmpty(ctx.BatchHeadXml))
             {
                 RestaurarGrillaDesdeXml(oForm, ctx.BatchHeadXml);
-                return;
             }
-
-            Recordset oRecordSet = null;
-            try
+            else
             {
-                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
-                oRecordSet = ObtenerLotesPorArticulo(oRecordSet, ctx.PrincipalItemCode);
+                Recordset oRecordSet = null;
+                try
+                {
+                    oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                    oRecordSet = ObtenerLotesPorArticulo(oRecordSet, ctx.PrincipalItemCode);
 
-                var data = MapearLotesPorArticulo(ref oRecordSet);
+                    var data = MapearLotesPorArticulo(ref oRecordSet);
 
-                if (data != null && data.Count > 0)
-                {
-                    PoblarGrillaLotes(oForm, data);
+                    if (data != null && data.Count > 0)
+                    {
+                        PoblarGrillaLotes(oForm, data);
+                    }
+                    else
+                    {
+                        NotificationService.MostrarAlerta(
+                            $"No se encontraron lotes para el artículo: {ctx.PrincipalItemCode}");
+                    }
                 }
-                else
+                finally
                 {
-                    NotificationService.MostrarAlerta(
-                        $"No se encontraron lotes para el artículo: {ctx.PrincipalItemCode}");
-                }
-            }
-            finally
-            {
-                if (oRecordSet != null)
-                {
-                    MarshalGC.LiberarComObject(oRecordSet);
-                    oRecordSet = null;
+                    if (oRecordSet != null)
+                    {
+                        MarshalGC.LiberarComObject(oRecordSet);
+                        oRecordSet = null;
+                    }
                 }
             }
         }

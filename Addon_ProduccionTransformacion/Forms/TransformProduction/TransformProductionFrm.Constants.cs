@@ -26,6 +26,10 @@
                     public const string STATUS = "ITPS_Status";
                     public const string ITEMCODE = "ITPS_ItemCode";
                     public const string QUANTITY = "ITPS_Qty";
+                    public const string ENTRY_DOC_ENTRY = "ITPS_EntryDocEntry";
+                    public const string EXIT_DOC_ENTRY = "ITPS_ExitDocEntry";
+                    public const string ENTRY_REV_DOC_ENTRY = "ITPS_EntryRevDocEntry";
+                    public const string EXIT_REV_DOC_ENTRY = "ITPS_ExitRevDocEntry";
                 }
 
                 public static class FIELDS_HEAD_DB
@@ -34,6 +38,10 @@
                     public const string STATUS = "U_" + FIELDS_HEAD.STATUS;
                     public const string ITEMCODE = "U_" + FIELDS_HEAD.ITEMCODE;
                     public const string QUANTITY = "U_" + FIELDS_HEAD.QUANTITY;
+                    public const string ENTRY_DOC_ENTRY = "U_" + FIELDS_HEAD.ENTRY_DOC_ENTRY;
+                    public const string EXIT_DOC_ENTRY = "U_" + FIELDS_HEAD.EXIT_DOC_ENTRY;
+                    public const string ENTRY_REV_DOC_ENTRY = "U_" + FIELDS_HEAD.ENTRY_REV_DOC_ENTRY;
+                    public const string EXIT_REV_DOC_ENTRY = "U_" + FIELDS_HEAD.EXIT_REV_DOC_ENTRY;
                 }
 
                 public static class FIELDS_LINE
@@ -77,6 +85,10 @@
                     public const string STATUS = "Estado";
                     public const string ITEMCODE = "Código de Artículo";
                     public const string QUANTITY = "Cantidad Consumida";
+                    public const string ENTRY_DOC_ENTRY = "Entrada DocEntry";
+                    public const string EXIT_DOC_ENTRY = "Salida DocEntry";
+                    public const string ENTRY_REV_DOC_ENTRY = "Reversión Entrada DocEntry";
+                    public const string EXIT_REV_DOC_ENTRY = "Reversión Salida DocEntry";
                 }
 
                 public static class FIELDS_LINE_DESC
@@ -119,6 +131,10 @@
                     public const string QUANTITY = "22_U_E";
                     public const string REMARK = "19_U_E";
                     public const string LOTE_LABEL = "Item_1";
+                    public const string ENTRY_DOCENTRY = "Item_4";
+                    public const string ENTRY_REV_DOCENTRY = "Item_6";
+                    public const string EXIT_DOCENTRY = "Item_7";
+                    public const string EXIT_REV_DOCENTRY = "Item_8";
 
                 }
 

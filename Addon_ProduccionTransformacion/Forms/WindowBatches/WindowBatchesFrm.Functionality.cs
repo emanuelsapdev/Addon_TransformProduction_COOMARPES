@@ -22,6 +22,7 @@ namespace Addon_TransformProduction.Forms.WindowBatches
             {
                 double qty = Convert.ToDouble(oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.QTY, i));
                 double qtyAssigned = Convert.ToDouble(oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.QTY_ASSIGNED, i));
+                
 
                 if (qtyAssigned > qty)
                 {
@@ -29,7 +30,8 @@ namespace Addon_TransformProduction.Forms.WindowBatches
                     return false;
                 }
 
-                totalQtyAsignada += qtyAssigned;
+                bool check = oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.CHECK, i) == "Y";
+                if (check) totalQtyAsignada += qtyAssigned;
             }
 
             if (totalQtyAsignada > ctx.PrincipalQuantityConsumed)

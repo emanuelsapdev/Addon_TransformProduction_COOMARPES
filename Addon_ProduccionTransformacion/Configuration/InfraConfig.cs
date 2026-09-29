@@ -101,6 +101,34 @@ namespace Addon_TransformProduction.Configuration
                     desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD_DESC.QUANTITY,
                     type: BoFieldTypes.db_Float,
                     subType: BoFldSubTypes.st_Quantity);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD.ENTRY_DOC_ENTRY,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD_DESC.ENTRY_DOC_ENTRY,
+                    type: BoFieldTypes.db_Numeric,
+                    size: 11);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD.EXIT_DOC_ENTRY,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD_DESC.EXIT_DOC_ENTRY,
+                    type: BoFieldTypes.db_Numeric,
+                    size: 11);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD.ENTRY_REV_DOC_ENTRY,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD_DESC.ENTRY_REV_DOC_ENTRY,
+                    type: BoFieldTypes.db_Numeric,
+                    size: 11);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD.EXIT_REV_DOC_ENTRY,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD_DESC.EXIT_REV_DOC_ENTRY,
+                    type: BoFieldTypes.db_Numeric,
+                    size: 11);
             }
             catch (Exception ex)
             {

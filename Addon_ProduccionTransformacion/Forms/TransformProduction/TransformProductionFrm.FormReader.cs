@@ -124,5 +124,49 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             string docEntry = oDBDS.GetValue("DocEntry", oDBDS.Offset);
             return docEntry;
         }
+
+        /// <summary>
+        /// Lee la cabecera del UDO desde el DBDataSource bound del formulario (incluye los
+        /// DocEntry de entrada/salida/reversión). La selección de lotes de la salida no se
+        /// persiste en la base: vive solo en memoria.
+        /// </summary>
+        public TransformProductionUdoModel LeerCabeceraUdo(SAPbouiCOM.Form oForm)
+        {
+            var oDbDataSource = oForm.DataSources.DBDataSources
+                .Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
+            return MapearCabeceraUdo(oDbDataSource);
+        }
+
+        /// <summary>
+        /// Reconstruye el contexto en memoria desde el formulario recién cargado (FORM_DATA_LOAD):
+        /// artículo, cantidad, estado y DocEntry persistidos. La salida (lotes del principal)
+        /// no se restaura: queda vacía para que el usuario la re-elija, y el resto del estado
+        /// sigue reconstruyéndose desde la base (restart-safe).
+        /// </summary>
+        public void ReconstruirContextoDesdeForm(SAPbouiCOM.Form oForm, TransformProductionContext ctx)
+        {
+            if (ctx == null) throw new ArgumentNullException(nameof(ctx));
+
+            var udo = LeerCabeceraUdo(oForm);
+            ctx.PrincipalItemCode = udo.ItemCode;
+            ctx.PrincipalQuantityConsumed = udo.Quantity;
+            ctx.PrincipalStatus = udo.Status;
+            ctx.InventoryGenEntriesDocEntry = udo.EntryDocEntry;
+            ctx.InventoryGenExitsDocEntry = udo.ExitDocEntry;
+        }
+
+        /// <summary>
+        /// Vacía el caption de la etiqueta de lotes seleccionados de la cabecera. Se usa al
+        /// reiniciar el contexto (crear/actualizar/navegar) para que no quede información
+        /// visual obsoleta del registro anterior.
+        /// </summary>
+        private void LimpiarEtiquetaLotes(SAPbouiCOM.Form oForm)
+        {
+            if (oForm == null) return;
+
+            var oStaticText = oForm.Items.Item(CONSTANTS.UID.HEADER.LOTE_LABEL).Specific as SAPbouiCOM.StaticText;
+            if (oStaticText != null)
+                oStaticText.Caption = string.Empty;
+        }
     }
 }

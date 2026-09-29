@@ -100,6 +100,63 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Reconstruye la salida (lotes del artículo principal consumidos) desde el Goods Issue
+        /// original (OIGE) indicado por <paramref name="exitDocEntry"/>. Se usa en la reversión
+        /// de un documento Completado reabierto, donde la selección de lotes ya no está en
+        /// memoria (la salida no se persiste en el UDO).
+        /// </summary>
+        public InventoryGenModel ObtenerExitDataDesdeDocumento(int exitDocEntry)
+        {
+            var model = new InventoryGenModel();
+            if (exitDocEntry <= 0) return model;
+
+            var oDoc = (Documents)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.oInventoryGenExit);
+            try
+            {
+                if (!oDoc.GetByKey(exitDocEntry)) return model;
+
+                model.DocDate = oDoc.DocDate;
+                model.TaxDate = oDoc.TaxDate;
+
+                for (int i = 0; i < oDoc.Lines.Count; i++)
+                {
+                    oDoc.Lines.SetCurrentLine(i);
+
+                    var item = new InventoryGenModel.Item
+                    {
+                        ItemCode = oDoc.Lines.ItemCode,
+                        Warehouse = oDoc.Lines.WarehouseCode,
+                        Quantity = oDoc.Lines.Quantity
+                    };
+
+                    for (int b = 0; b < oDoc.Lines.BatchNumbers.Count; b++)
+                    {
+                        oDoc.Lines.BatchNumbers.SetCurrentLine(b);
+
+                        var batch = new InventoryGenModel.Item.Batch
+                        {
+                            BatchNumber = oDoc.Lines.BatchNumbers.BatchNumber,
+                            Quantity = oDoc.Lines.BatchNumbers.Quantity,
+                            MnfDate = oDoc.Lines.BatchNumbers.ManufacturingDate,
+                            ExpDate = oDoc.Lines.BatchNumbers.ExpiryDate,
+                            InDate = oDoc.Lines.BatchNumbers.AddmisionDate
+                        };
+
+                        item.AddBatch(batch);
+                    }
+
+                    model.Items.Add(item);
+                }
+
+                return model;
+            }
+            finally
+            {
+                MarshalGC.LiberarComObject(oDoc);
+            }
+        }
+
+        /// <summary>
         /// Arma cabecera, líneas y lotes de un documento de entrada/salida de mercancía (DI API)
         /// y lo agrega. Si se indica <paramref name="baseDocObjectType"/>/<paramref name="baseDocEntry"/>,
         /// referencia todas las líneas a la primera línea de ese documento base para que quede
@@ -178,37 +235,58 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             {
                 MarshalGC.LiberarComObject(oDoc);
             }
+
+
         }
 
-        public bool CambiarTransformProductionStatus(int docEntry, string newStatus)
+        /// <summary>
+        /// Actualiza de forma unificada la cabecera del UDO de Producción/Transformación:
+        /// estado y/o DocEntry de entrada, salida y reversiones. Solo persiste los campos
+        /// provistos (null = no tocar). La selección de lotes de la salida no se persiste.
+        /// </summary>
+        /// <param name="docEntry">DocEntry del registro UDO a actualizar (mayor que cero).</param>
+        /// <param name="status">Nuevo estado, o null para no modificarlo.</param>
+        public bool ActualizarResultadoTransformacion(
+            int docEntry,
+            string status,
+            int? entryDocEntry = null,
+            int? exitDocEntry = null,
+            int? entryRevDocEntry = null,
+            int? exitRevDocEntry = null)
         {
             if (docEntry == 0) throw new ArgumentNullException(nameof(docEntry));
-            if (string.IsNullOrWhiteSpace(newStatus)) throw new ArgumentNullException(nameof(newStatus));
 
             CompanyService oCompanyService = null;
             GeneralService oGeneralService = null;
             GeneralDataParams oParams = null;
+            GeneralData oGeneralData = null;
 
             try
             {
                 oCompanyService = ConnectionSDK.DIAPI.GetCompanyService();
                 oGeneralService = (GeneralService)oCompanyService.GetGeneralService(CONSTANTS.UDO.OBJECT_CODE);
                 oParams = oGeneralService.GetDataInterface(GeneralServiceDataInterfaces.gsGeneralDataParams);
-
-                // Traer el registro existente
                 oParams.SetProperty("DocEntry", docEntry);
 
-                GeneralData oGeneralData = oGeneralService.GetByParams(oParams);
+                oGeneralData = oGeneralService.GetByParams(oParams);
 
-                // Modificar campos
-                oGeneralData.SetProperty(CONSTANTS.TABLES.FIELDS_HEAD_DB.STATUS, newStatus);
+                if (status != null)
+                    oGeneralData.SetProperty(CONSTANTS.TABLES.FIELDS_HEAD_DB.STATUS, status);
+                if (entryDocEntry.HasValue)
+                    oGeneralData.SetProperty(CONSTANTS.TABLES.FIELDS_HEAD_DB.ENTRY_DOC_ENTRY, entryDocEntry.Value);
+                if (exitDocEntry.HasValue)
+                    oGeneralData.SetProperty(CONSTANTS.TABLES.FIELDS_HEAD_DB.EXIT_DOC_ENTRY, exitDocEntry.Value);
+                if (entryRevDocEntry.HasValue)
+                    oGeneralData.SetProperty(CONSTANTS.TABLES.FIELDS_HEAD_DB.ENTRY_REV_DOC_ENTRY, entryRevDocEntry.Value);
+                if (exitRevDocEntry.HasValue)
+                    oGeneralData.SetProperty(CONSTANTS.TABLES.FIELDS_HEAD_DB.EXIT_REV_DOC_ENTRY, exitRevDocEntry.Value);
 
-                // Guardar
                 oGeneralService.Update(oGeneralData);
-                
                 return true;
             }
-            catch { 
+            catch (Exception ex)
+            {
+                NotificationService.MostrarError($"Error actualizando el UDO {docEntry}: {ex.Message}");
                 return false;
             }
             finally
@@ -216,6 +294,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 MarshalGC.LiberarComObject(oCompanyService);
                 MarshalGC.LiberarComObject(oGeneralService);
                 MarshalGC.LiberarComObject(oParams);
+                MarshalGC.LiberarComObject(oGeneralData);
             }
         }
     }
