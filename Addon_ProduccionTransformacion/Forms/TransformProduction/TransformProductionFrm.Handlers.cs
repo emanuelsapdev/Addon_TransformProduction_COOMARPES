@@ -13,6 +13,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// <summary>
         /// Al abrir el formulario (et_FORM_LOAD) crea el contexto de la producción, guarda la
         /// referencia al formulario y aplica el post-proceso de la UI (editabilidad de columnas).
+        /// El campo "Producto" con CFL filtrado se crea recién en et_FORM_ACTIVATE (ver
+        /// ManejarActivacionCampoProducto).
         /// </summary>
         public void ManejarCargaFormulario(string formUid)
         {
