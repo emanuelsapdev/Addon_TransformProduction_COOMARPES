@@ -487,22 +487,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     LimpiarEtiquetaLotes(oForm);
 
                     oForm.Freeze(true);
-                    FormularioEnCualquierEstado(oForm);
-
-                    switch (ctxLoad.PrincipalStatus)
-                    {
-                        case CONSTANTS.STAGING_STATUS.COMPLETED:
-                                FormularioEnEstadoCompletado(oForm);
-                            break;
-                        case CONSTANTS.STAGING_STATUS.PENDING:
-                                FormularioEnEstadoPendiente(oForm);
-                            break;
-                        case CONSTANTS.STAGING_STATUS.REVERT:
-                                FormularioEnEstadoRevertido(oForm);
-                            break;
-                        default:
-                            break;
-                    }
+                    AplicarHabilitacionPorEstado(oForm, ctxLoad.PrincipalStatus);
                     oForm.Freeze(false);
 
                 }

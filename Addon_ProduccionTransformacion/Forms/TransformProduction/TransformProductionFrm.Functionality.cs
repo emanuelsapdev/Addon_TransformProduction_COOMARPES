@@ -223,6 +223,66 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             oItemQuantity.Enabled = false;
         }
 
+        /// <summary>
+        /// Aplica la habilitación de campos y botones que corresponde al estado del registro.
+        /// </summary>
+        public static void AplicarHabilitacionPorEstado(SAPbouiCOM.Form oForm, string status)
+        {
+            FormularioEnCualquierEstado(oForm);
+
+            switch (status)
+            {
+                case CONSTANTS.STAGING_STATUS.COMPLETED:
+                    FormularioEnEstadoCompletado(oForm);
+                    break;
+                case CONSTANTS.STAGING_STATUS.PENDING:
+                    FormularioEnEstadoPendiente(oForm);
+                    break;
+                case CONSTANTS.STAGING_STATUS.REVERT:
+                    FormularioEnEstadoRevertido(oForm);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public static void HabilitarBotonRevertir(SAPbouiCOM.Form oForm, bool enabled)
+        {
+            SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
+            oItemBtnRevert.Enabled = enabled;
+        }
+
+        /// <summary>
+        /// Una producción/transformación se puede revertir una sola vez: el registro tiene que
+        /// existir en la base, estar Completado y no tener documentos de reversión. Se valida
+        /// contra la cabecera persistida (no contra el formulario, que puede estar desactualizado).
+        /// </summary>
+        public static bool PuedeRevertirse(TransformProductionUdoModel udo, out string motivo)
+        {
+            motivo = null;
+
+            if (udo == null)
+            {
+                motivo = CONSTANTS.MESSAGES.REVERT_NOT_SAVED;
+                return false;
+            }
+
+            if (udo.EntryRevDocEntry > 0 || udo.ExitRevDocEntry > 0
+                || udo.Status == CONSTANTS.STAGING_STATUS.REVERT)
+            {
+                motivo = CONSTANTS.MESSAGES.REVERT_ALREADY_DONE;
+                return false;
+            }
+
+            if (udo.Status != CONSTANTS.STAGING_STATUS.COMPLETED)
+            {
+                motivo = CONSTANTS.MESSAGES.REVERT_NOT_COMPLETED + udo.Status;
+                return false;
+            }
+
+            return true;
+        }
+
         public static void AbrirDocumentosRelacionados(TransformProductionContext ctx)
         {
             if (ctx == null) return;
