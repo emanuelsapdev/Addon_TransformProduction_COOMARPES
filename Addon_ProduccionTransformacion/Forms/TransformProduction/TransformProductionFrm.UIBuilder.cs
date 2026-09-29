@@ -96,17 +96,73 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// Deja el ChooseFromList indicado (el que SAP asigna al campo "Producto" por el UDF
-        /// vinculado a Artículos) mostrando solo artículos con lista de materiales de
-        /// producción (OITM."TreeType" = 'P'). SetConditions reemplaza las condiciones
-        /// anteriores, así que es idempotente.
+        /// Crea el campo espejo de "Producto" (ver CONSTANTS.UID.CHOOSE_FROM_LIST): UserDataSource,
+        /// CFL de artículos filtrado por lista de materiales y EditText en la misma posición que
+        /// el campo original, que queda oculto. Idempotente: si el formulario ya lo tiene, no
+        /// vuelve a crear nada.
         /// </summary>
-        private static void AplicarFiltroListaMateriales(SAPbouiCOM.Form oForm, string cflUid)
+        public void CrearCampoProductoConFiltro(SAPbouiCOM.Form oForm)
         {
-            ChooseFromList oCfl = oForm.ChooseFromLists.Item(cflUid);
-            AplicarFiltroListaMateriales(oCfl);
+            try
+            {
+                if (ExisteItem(oForm, CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR)) return;
+
+                oForm.DataSources.UserDataSources.Add(
+                    CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE, BoDataType.dt_SHORT_TEXT, 50);
+
+                ChooseFromList oCfl = CrearChooseFromListArticulos(oForm);
+                AplicarFiltroListaMateriales(oCfl);
+
+                SAPbouiCOM.Item oOriginal = oForm.Items.Item(CONSTANTS.UID.HEADER.ITEM_CODE);
+                SAPbouiCOM.Item oEspejo = oForm.Items.Add(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR, BoFormItemTypes.it_EDIT);
+                oEspejo.Left = oOriginal.Left;
+                oEspejo.Top = oOriginal.Top;
+                oEspejo.Width = oOriginal.Width;
+                oEspejo.Height = oOriginal.Height;
+                oEspejo.FromPane = oOriginal.FromPane;
+                oEspejo.ToPane = oOriginal.ToPane;
+
+                var oEdit = (EditText)oEspejo.Specific;
+                oEdit.DataBind.SetBound(true, "", CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE);
+                oEdit.ChooseFromListUID = CONSTANTS.UID.CHOOSE_FROM_LIST.UID;
+                oEdit.ChooseFromListAlias = CONSTANTS.UID.CHOOSE_FROM_LIST.ALIAS;
+
+                oOriginal.Visible = false;
+                oForm.Items.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_LABEL).LinkTo = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR;
+            }
+            catch (Exception ex)
+            {
+                NotificationService.MostrarError(CONSTANTS.MESSAGES.CFL_ITEM_BUILD_ERROR_PREFIX + ex.Message);
+            }
         }
 
+        private static bool ExisteItem(SAPbouiCOM.Form oForm, string itemUid)
+        {
+            try
+            {
+                oForm.Items.Item(itemUid);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static ChooseFromList CrearChooseFromListArticulos(SAPbouiCOM.Form oForm)
+        {
+            var oParams = (ChooseFromListCreationParams)ConnectionSDK.UIAPI.CreateObject(BoCreatableObjectType.cot_ChooseFromListCreationParams);
+            oParams.UniqueID = CONSTANTS.UID.CHOOSE_FROM_LIST.UID;
+            oParams.ObjectType = CONSTANTS.UID.CHOOSE_FROM_LIST.OBJECT_TYPE;
+            oParams.MultiSelection = false;
+
+            return oForm.ChooseFromLists.Add(oParams);
+        }
+
+        /// <summary>
+        /// Deja el CFL mostrando solo artículos con lista de materiales de producción
+        /// (OITM."TreeType" = 'P'). SetConditions reemplaza las condiciones anteriores.
+        /// </summary>
         private static void AplicarFiltroListaMateriales(ChooseFromList oCfl)
         {
             var oConditions = (Conditions)ConnectionSDK.UIAPI.CreateObject(BoCreatableObjectType.cot_Conditions);

@@ -48,24 +48,69 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// Antes de abrir el ChooseFromList del campo "Producto" (et_CHOOSE_FROM_LIST,
-        /// BeforeAction) le aplica el filtro de artículos con lista de materiales. Se filtra el
-        /// CFL que SAP ya tiene asignado al campo (UDF vinculado a Artículos) en vez de
-        /// reemplazarlo, porque SAP no permite cambiar el ChooseFromListUID de ese campo.
+        /// El usuario eligió un artículo en el CFL filtrado del campo espejo de "Producto":
+        /// lo escribe en el UDF de la cabecera y dispara el mismo flujo que el cambio de
+        /// artículo (BOM → grilla, botón de lotes).
         /// </summary>
-        public void ManejarChooseFromListArticulo(string formUid, string cflUid)
+        public void ManejarSeleccionProductoCfl(SAPbouiCOM.Form oForm, SAPbouiCOM.DataTable oSeleccion)
         {
-            if (string.IsNullOrWhiteSpace(cflUid)) return;
+            if (oSeleccion == null || oSeleccion.Rows.Count == 0) return; // CFL cancelado
 
+            string itemCode = Convert.ToString(oSeleccion.GetValue(CONSTANTS.UID.CHOOSE_FROM_LIST.ALIAS, 0))?.Trim();
+            if (string.IsNullOrWhiteSpace(itemCode)) return;
+
+            AplicarCambioProducto(oForm, itemCode);
+        }
+
+        /// <summary>
+        /// Al salir del campo espejo de "Producto" (código tipeado a mano): si cambió respecto
+        /// del UDF de la cabecera, lo copia y dispara el flujo de cambio de artículo. Si no
+        /// cambió (p.ej. ya se aplicó desde el CFL) no hace nada, para no repintar la grilla.
+        /// </summary>
+        public void ManejarProductoPerdidaFoco(SAPbouiCOM.Form oForm)
+        {
+            string itemCode = LeerCodigoArticuloEspejo(oForm) ?? string.Empty;
+            if (string.Equals(itemCode, LeerCodigoArticulo(oForm) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return;
+
+            AplicarCambioProducto(oForm, itemCode);
+        }
+
+        private void AplicarCambioProducto(SAPbouiCOM.Form oForm, string itemCode)
+        {
+            EscribirCodigoArticulo(oForm, itemCode);
+            ManejarCodigoArticuloPerdidaFoco(oForm);
+            HabilitarBotonSeleccionLotes(oForm);
+        }
+
+        /// <summary>
+        /// Re-sincroniza el campo espejo de "Producto" con el registro cargado (navegación,
+        /// cambio de modo, reactivación del formulario).
+        /// </summary>
+        public void ManejarSincronizacionProducto(string formUid)
+        {
             SAPbouiCOM.Form oForm = null;
             try
             {
                 oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
-                AplicarFiltroListaMateriales(oForm, cflUid);
+                SincronizarCampoProducto(oForm);
             }
-            catch (Exception ex)
+            finally
             {
-                NotificationService.MostrarError(CONSTANTS.MESSAGES.CFL_ITEM_FILTER_ERROR_PREFIX + ex.Message);
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+        }
+
+        /// <summary>
+        /// Después de agregar el documento el formulario queda en uno nuevo: vacía el campo
+        /// espejo de "Producto".
+        /// </summary>
+        public void ManejarProductoTrasAgregar(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+                LimpiarCampoProductoEspejo(oForm);
             }
             finally
             {

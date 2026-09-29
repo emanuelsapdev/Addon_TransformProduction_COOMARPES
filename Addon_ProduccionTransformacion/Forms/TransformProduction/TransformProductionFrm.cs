@@ -26,6 +26,21 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         {
             BubbleEvent = true;
 
+            // Buscar / Nuevo: re-sincronizar el campo espejo de "Producto" con el registro vacío.
+            if (!pVal.BeforeAction && (pVal.MenuUID == CONSTANTS.SAP_MENUS.FIND || pVal.MenuUID == CONSTANTS.SAP_MENUS.ADD))
+            {
+                try
+                {
+                    var oActive = ConnectionSDK.UIAPI.Forms.ActiveForm;
+                    if (oActive != null && oActive.TypeEx == FormType)
+                        ManejarSincronizacionProducto(oActive.UniqueID);
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.MostrarError($"(OnMenuEvent) {pVal.MenuUID}: {ex.Message}");
+                }
+            }
+
             //try
             //{
             //    if (!pVal.BeforeAction && pVal.MenuUID == CONSTANTS.MENU_UID)
@@ -117,25 +132,37 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return;
             }
 
-            // Antes de abrir el ChooseFromList de Producto se filtra a artículos con lista de materiales.
-            if (pVal.BeforeAction && pVal.EventType == BoEventTypes.et_CHOOSE_FROM_LIST
-                && pVal.ItemUID == CONSTANTS.UID.HEADER.ITEM_CODE)
+            // Artículo elegido en el CFL filtrado (solo con lista de materiales) del campo Producto.
+            if (pVal.ActionSuccess && pVal.EventType == BoEventTypes.et_CHOOSE_FROM_LIST
+                && pVal.ItemUID == CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR)
             {
-                ManejarChooseFromListArticulo(pVal.FormUID, ((IChooseFromListEvent)pVal).ChooseFromListUID);
+                SAPbouiCOM.Form oForm = null;
+                try
+                {
+                    oForm = ConnectionSDK.UIAPI.Forms.Item(FormUID);
+                    ManejarSeleccionProductoCfl(oForm, ((IChooseFromListEvent)pVal).SelectedObjects);
+                }
+                finally
+                {
+                    if (oForm != null)
+                    {
+                        MarshalGC.LiberarComObject(oForm);
+                        oForm = null;
+                    }
+                }
                 return;
             }
 
-            // Al perder el foco el código de artículo se consulta el BOM y se pinta la grilla.
+            // Al perder el foco el campo Producto se copia al UDF, se consulta el BOM y se pinta la grilla.
             if (pVal.ActionSuccess && pVal.EventType == BoEventTypes.et_LOST_FOCUS
-                && pVal.ItemUID == CONSTANTS.UID.HEADER.ITEM_CODE)
+                && pVal.ItemUID == CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR)
             {
                 SAPbouiCOM.Form oForm = null;
                 try
                 {
                     oForm = ConnectionSDK.UIAPI.Forms.Item(FormUID);
 
-                    ManejarCodigoArticuloPerdidaFoco(oForm);
-                    HabilitarBotonSeleccionLotes(oForm);
+                    ManejarProductoPerdidaFoco(oForm);
                 }
                 finally
                 {
@@ -321,6 +348,32 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         public void OnFormDataEvent(ref BusinessObjectInfo boi, out bool BubbleEvent)
         {
             BubbleEvent = true;
+
+            // Campo espejo de "Producto": reflejar el registro recién cargado.
+            if (boi.FormTypeEx == FormType && boi.EventType == BoEventTypes.et_FORM_DATA_LOAD && boi.ActionSuccess)
+            {
+                try
+                {
+                    ManejarSincronizacionProducto(boi.FormUID);
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.MostrarError($"(OnFormDataEvent) {boi.EventType}: {ex.Message}");
+                }
+            }
+
+            // Campo espejo de "Producto": después de agregar el formulario queda en un documento nuevo.
+            if (boi.FormTypeEx == FormType && boi.EventType == BoEventTypes.et_FORM_DATA_ADD && boi.ActionSuccess)
+            {
+                try
+                {
+                    ManejarProductoTrasAgregar(boi.FormUID);
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.MostrarError($"(OnFormDataEvent) {boi.EventType}: {ex.Message}");
+                }
+            }
 
             if (boi.FormTypeEx == FormType && boi.EventType == BoEventTypes.et_FORM_DATA_ADD && boi.ActionSuccess)
             {

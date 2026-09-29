@@ -11,6 +11,13 @@
             public const string PARENT_TOOLS_MENU_UID = "43520";
             public const string PARENT_INVENTORY_MENU_UID = "3072";
 
+            /// <summary>Menús estándar de SAP que cambian el modo del formulario.</summary>
+            public static class SAP_MENUS
+            {
+                public const string FIND = "1281";
+                public const string ADD = "1282";
+            }
+
             public static class TABLES
             {
                 public const string TRANSFORM_PRODUCTION_HEAD = "ITPS_TRANSFPROD_CAB";
@@ -149,13 +156,23 @@
                 }
 
                 /// <summary>
-                /// Filtro del ChooseFromList del campo "Producto" de la cabecera (ITEM_CODE): solo
-                /// artículos con lista de materiales de producción (OITM."TreeType" = 'P'), mismo
-                /// criterio que ITPS_VW_TRANSFPROD_LOTES. Se aplica sobre el CFL que SAP asigna al
-                /// UDF vinculado a Artículos (no se puede reemplazar: da "Invalid item").
+                /// Campo espejo de "Producto": el EditText original (HEADER.ITEM_CODE) está bound al
+                /// UDF U_ITPS_ItemCode, vinculado a Artículos, y SAP le pone su propia ayuda de
+                /// búsqueda, que no se puede filtrar ni reemplazar ("Invalid item" / el CFL del
+                /// evento es el del UDO). Por eso se crea por código un EditText propio encima,
+                /// bound a un UserDataSource y con un CFL de artículos (OITM) filtrado a los que
+                /// tienen lista de materiales de producción (OITM."TreeType" = 'P', mismo criterio
+                /// que ITPS_VW_TRANSFPROD_LOTES). El original queda oculto y el valor se sincroniza
+                /// con el DBDataSource (ver FormReader).
                 /// </summary>
                 public static class CHOOSE_FROM_LIST
                 {
+                    public const string ITEM_CODE_MIRROR = "itpsArt";
+                    public const string ITEM_CODE_LABEL = "21_U_S";
+                    public const string USER_DATASOURCE = "itpsUArt";
+                    public const string UID = "itpsCflA";
+                    public const string OBJECT_TYPE = "4";
+                    public const string ALIAS = "ItemCode";
                     public const string TREE_TYPE_ALIAS = "TreeType";
                     public const string TREE_TYPE_PRODUCTION = "P";
                 }
@@ -199,7 +216,7 @@
                 public static string MENU_REGISTER_ERROR_PREFIX = "Error registrando el menú del addon: ";
                 public static string FORM_OPEN_ERROR_PREFIX = "Error abriendo un documento nuevo de producción/transformación: ";
                 public static string FORM_INIT_ERROR_PREFIX = "Error inicializando el formulario de producción/transformación: ";
-                public static string CFL_ITEM_FILTER_ERROR_PREFIX = "Error filtrando la lista de selección de artículos con lista de materiales: ";
+                public static string CFL_ITEM_BUILD_ERROR_PREFIX = "Error creando el campo Producto con la lista de artículos con lista de materiales: ";
             }
 
         }

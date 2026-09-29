@@ -12,13 +12,17 @@ namespace Addon_TransformProduction.Forms.TransformProduction
     {
         /// <summary>
         /// Al abrir el formulario (et_FORM_LOAD) crea el contexto de la producción, guarda la
-        /// referencia al formulario y aplica el post-proceso de la UI (editabilidad de columnas).
+        /// referencia al formulario, crea el campo "Producto" con el CFL filtrado por lista de
+        /// materiales y aplica el post-proceso de la UI (editabilidad de columnas).
         /// </summary>
         public void ManejarCargaFormulario(string formUid)
         {
             var oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
             var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
             ctx.FormTransfProd = oForm;
+
+            CrearCampoProductoConFiltro(oForm);
+            SincronizarCampoProducto(oForm);
 
             //InicializarFormulario(oForm);
         }

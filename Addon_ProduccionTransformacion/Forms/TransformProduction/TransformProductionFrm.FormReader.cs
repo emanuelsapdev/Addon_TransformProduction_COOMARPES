@@ -9,12 +9,81 @@ namespace Addon_TransformProduction.Forms.TransformProduction
     public partial class TransformProductionFrm
     {
         /// <summary>
-        /// Código de artículo cargado en la cabecera del formulario, o null/vacío.
+        /// Código de artículo cargado en la cabecera del formulario (U_ITPS_ItemCode del
+        /// DBDataSource), o null/vacío. Se lee del DBDataSource y no del EditText original
+        /// porque ese campo queda oculto detrás del campo espejo con CFL filtrado.
         /// </summary>
         private string LeerCodigoArticulo(SAPbouiCOM.Form oForm)
         {
-            var oItemCode = (EditText)oForm.Items.Item(CONSTANTS.UID.HEADER.ITEM_CODE).Specific;
-            return oItemCode.Value?.Trim();
+            var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
+            return oDBDS.GetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.ITEMCODE, oDBDS.Offset)?.Trim();
+        }
+
+        /// <summary>
+        /// Código de artículo escrito/elegido en el campo espejo de "Producto" (UserDataSource).
+        /// </summary>
+        private string LeerCodigoArticuloEspejo(SAPbouiCOM.Form oForm)
+        {
+            var oUDS = oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE);
+            return oUDS.ValueEx?.Trim();
+        }
+
+        /// <summary>
+        /// Escribe el código de artículo en el UDF de la cabecera (DBDataSource, lo que se graba
+        /// en el UDO) y en el campo espejo.
+        /// </summary>
+        private void EscribirCodigoArticulo(SAPbouiCOM.Form oForm, string itemCode)
+        {
+            var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
+            oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.ITEMCODE, oDBDS.Offset, itemCode ?? string.Empty);
+
+            var oUDS = oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE);
+            oUDS.ValueEx = itemCode ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Vacía el campo espejo de "Producto" (después de agregar, el formulario queda en un
+        /// documento nuevo).
+        /// </summary>
+        private void LimpiarCampoProductoEspejo(SAPbouiCOM.Form oForm)
+        {
+            try
+            {
+                oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE).ValueEx = string.Empty;
+            }
+            catch
+            {
+                // El formulario no tiene el campo espejo (falló su creación): nada que limpiar.
+            }
+        }
+
+        /// <summary>
+        /// Refleja en el campo espejo de "Producto" el valor del registro (DBDataSource) y lo deja
+        /// editable solo en modo agregar (en un registro existente el artículo no se cambia).
+        /// No hace nada si el formulario todavía no tiene el campo espejo.
+        /// </summary>
+        private void SincronizarCampoProducto(SAPbouiCOM.Form oForm)
+        {
+            UserDataSource oUDS;
+            try
+            {
+                oUDS = oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE);
+            }
+            catch
+            {
+                return;
+            }
+
+            oUDS.ValueEx = LeerCodigoArticulo(oForm) ?? string.Empty;
+
+            try
+            {
+                oForm.Items.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR).Enabled = oForm.Mode == BoFormMode.fm_ADD_MODE;
+            }
+            catch
+            {
+                // SAP no deja deshabilitar el item que tiene el foco; se reintenta en la próxima sincronización.
+            }
         }
 
         /// <summary>
