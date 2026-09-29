@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
@@ -281,6 +282,19 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// DocEntry del registro recién agregado, desde el ObjectKey del FormDataEvent
+        /// (p.ej. "&lt;DocumentParams&gt;&lt;DocEntry&gt;12&lt;/DocEntry&gt;&lt;/DocumentParams&gt;"). Devuelve 0 si no se
+        /// puede leer. Se usa en vez del formulario porque tras agregar queda en un documento nuevo.
+        /// </summary>
+        public static int ObtenerDocEntryAgregado(string objectKey)
+        {
+            if (string.IsNullOrWhiteSpace(objectKey)) return 0;
+
+            var match = Regex.Match(objectKey, @"<DocEntry>\s*(\d+)\s*</DocEntry>", RegexOptions.IgnoreCase);
+            return match.Success && int.TryParse(match.Groups[1].Value, out int docEntry) ? docEntry : 0;
         }
 
         public static void AbrirDocumentosRelacionados(TransformProductionContext ctx)

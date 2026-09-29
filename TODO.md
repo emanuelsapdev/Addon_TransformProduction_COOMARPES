@@ -28,12 +28,17 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   *Hecho:* `PrepararXmlFormulario` fija `uid` = `WINDOW_BATCHES_{typeCount}` y `FormType` =
   `CONSTANTS.FORM_TYPE` en el XML antes de `LoadBatchActions`; `MostrarFormulario` busca el
   form por ese UID. Pendiente de probar en SAP.
-- [ ] **TP-03 — Validación después de grabar / Completado sin documentos.** La creación de la
+- [x] **TP-03 — Validación después de grabar / Completado sin documentos.** La creación de la
   Entrada/Salida corre en `et_FORM_DATA_ADD` con `ActionSuccess`: el UDO ya está grabado y
   `BubbleEvent = false` no lo deshace. Si `ManejarCreacionProduccion` falla, igual se llama a
   `ActualizarResultadoTransformacion` con estado Completado.
   *Propuesta:* validar (`ValidarFormulario`) en el BeforeAction del botón Crear y cortar ahí;
   en el after-add, persistir Completado solo si `CrearProduccion` devolvió true.
+  *Hecho:* con "Crear" se valida en el BeforeAction (`PrepararCreacionCompletada`: artículo,
+  cantidad, lotes y líneas de subproductos) y si falla no se graba el UDO. El registro se graba
+  siempre Pendiente; en el after-add (`ManejarProduccionAgregada`) se crean IGN/IGO con los
+  datos validados y solo si se crean pasa a Completado. El DocEntry se toma de `boi.ObjectKey`.
+  Pendiente de probar en SAP.
 - [ ] **TP-04 — Resultado del update del UDO ignorado.** Si IGN/IGE se confirman pero
   `ActualizarResultadoTransformacion` falla, el documento queda Pendiente con el stock ya
   movido y se puede volver a confirmar (duplica movimientos). Revisar el `bool` devuelto y

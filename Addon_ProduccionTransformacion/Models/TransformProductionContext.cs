@@ -30,6 +30,20 @@ namespace Addon_TransformProduction.Models
         public int InventoryGenEntriesRevDocEntry { get; set; }
 
         /// <summary>
+        /// El usuario eligió "Crear" (Completado) y la validación pasó en el BeforeAction: al
+        /// agregarse el UDO hay que generar la Entrada/Salida. No lo pisa et_FORM_ACTIVATE.
+        /// </summary>
+        public bool CompletarAlAgregar { get; set; }
+
+        /// <summary>
+        /// Entrada (subproductos) y salida (lotes del principal) validadas en el BeforeAction de
+        /// Crear. Se guardan aparte porque después de agregar el formulario queda en un
+        /// documento nuevo y et_FORM_ACTIVATE reescribe InventoryGenEntriesData desde la grilla.
+        /// </summary>
+        public InventoryGenModel EntradasAlAgregar { get; set; }
+        public InventoryGenModel SalidasAlAgregar { get; set; }
+
+        /// <summary>
         /// Último modo de formulario observado: permite detectar la transición fm_OK_MODE →
         /// fm_ADD_MODE (botón "Nuevo") sin depender de FormModeEx, para resetear el contexto
         /// justo al empezar un documento nuevo.
@@ -57,6 +71,9 @@ namespace Addon_TransformProduction.Models
             InventoryGenExitsRevDocEntry = 0;
             InventoryGenEntriesRevDocEntry = 0;
 
+            CompletarAlAgregar = false;
+            EntradasAlAgregar = null;
+            SalidasAlAgregar = null;
         }
     }
 }
