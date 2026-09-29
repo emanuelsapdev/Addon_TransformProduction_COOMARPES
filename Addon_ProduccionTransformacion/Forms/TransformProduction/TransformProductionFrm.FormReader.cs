@@ -1,4 +1,6 @@
+using Addon_TransformProduction.Common;
 using Addon_TransformProduction.Models;
+using Addon_TransformProduction.Tools;
 using SAPbouiCOM;
 using System;
 using System.Collections.Generic;
@@ -216,12 +218,55 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         {
             if (ctx == null) throw new ArgumentNullException(nameof(ctx));
 
-            var udo = LeerCabeceraUdo(oForm);
+            AplicarCabeceraUdoAContexto(LeerCabeceraUdo(oForm), ctx);
+        }
+
+        /// <summary>
+        /// Copia al contexto en memoria artículo, cantidad, estado y DocEntry de la cabecera
+        /// del UDO (leída del formulario o de la base).
+        /// </summary>
+        private static void AplicarCabeceraUdoAContexto(TransformProductionUdoModel udo, TransformProductionContext ctx)
+        {
             ctx.PrincipalItemCode = udo.ItemCode;
             ctx.PrincipalQuantityConsumed = udo.Quantity;
             ctx.PrincipalStatus = udo.Status;
             ctx.InventoryGenEntriesDocEntry = udo.EntryDocEntry;
             ctx.InventoryGenExitsDocEntry = udo.ExitDocEntry;
+        }
+
+        /// <summary>
+        /// Vuelve a leer de la base la cabecera y las líneas del registro <paramref name="docEntry"/>
+        /// (DBDataSource.Query) y deja el formulario en modo OK, sin cambios pendientes. Se usa
+        /// después de actualizar el UDO por DI API (p.ej. al revertir) para que el formulario
+        /// refleje el estado y los DocEntry persistidos.
+        /// </summary>
+        private void RecargarRegistro(SAPbouiCOM.Form oForm, int docEntry)
+        {
+            if (oForm == null) throw new ArgumentNullException(nameof(oForm));
+
+            Conditions oConditions = null;
+            oForm.Freeze(true);
+            try
+            {
+                oConditions = (Conditions)ConnectionSDK.UIAPI.CreateObject(BoCreatableObjectType.cot_Conditions);
+                Condition oCondition = oConditions.Add();
+                oCondition.Alias = CONSTANTS.TABLES.FIELDS_HEAD_DB.DOCENTRY;
+                oCondition.Operation = BoConditionOperation.co_EQUAL;
+                oCondition.CondVal = docEntry.ToString(CultureInfo.InvariantCulture);
+
+                oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT).Query(oConditions);
+                oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT).Query(oConditions);
+
+                var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
+                oMatrix.LoadFromDataSource();
+
+                oForm.Mode = BoFormMode.fm_OK_MODE;
+            }
+            finally
+            {
+                oForm.Freeze(false);
+                if (oConditions != null) MarshalGC.LiberarComObject(oConditions);
+            }
         }
 
         /// <summary>

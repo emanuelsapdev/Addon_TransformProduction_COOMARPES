@@ -203,16 +203,36 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
         /// <summary>
         /// Reversión cruzada: la entrada (IGN de subproductos) se revierte con una salida (IGO)
-        /// y la salida (IGO del principal) con una entrada (IGN). Persiste los DocEntry de
-        /// reversión y deja el documento en estado Revertido.
+        /// y la salida (IGO del principal) con una entrada (IGN). Solo se permite una vez, sobre
+        /// un documento Completado y sin documentos de reversión, validado contra la base (el
+        /// formulario puede estar desactualizado). Los documentos de reversión y el update del
+        /// UDO (estado Revertido + DocEntry de reversión) van en la misma transacción; al
+        /// terminar se recarga el registro para que el formulario quede en estado Revertido.
         /// </summary>
         public void ManejarReversionTransformacion(SAPbouiCOM.Form oForm, out bool BubbleEvent)
         {
             BubbleEvent = true;
             var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
 
-            ReconstruirContextoDesdeForm(oForm, ctx);
-            int docEntryUnit = Convert.ToInt32(ObtenerDocEntry(oForm));
+            int.TryParse(ObtenerDocEntry(oForm), out int docEntryUnit);
+            var udo = LeerCabeceraUdoPersistida(docEntryUnit);
+
+            if (!PuedeRevertirse(udo, out string motivo))
+            {
+                NotificationService.MostrarAlerta(motivo);
+                if (udo != null)
+                {
+                    RecargarRegistro(oForm, docEntryUnit);
+                    AplicarHabilitacionPorEstado(oForm, udo.Status);
+                }
+                else
+                {
+                    HabilitarBotonRevertir(oForm, false);
+                }
+                return;
+            }
+
+            AplicarCabeceraUdoAContexto(udo, ctx);
 
             // La salida (lotes del principal) no se persiste en el UDO: si el documento fue
             // reabierto y no quedó selección en memoria, se reconstruye desde el Goods Issue
@@ -226,6 +246,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             if (respuesta != 2) return; // 1 = botón "Cancelar"
 
+            // Se deshabilita antes de generar documentos para que un segundo click no dispare
+            // otra reversión mientras se procesa.
+            HabilitarBotonRevertir(oForm, false);
+
             int entryRevDocEntry = 0, exitRevDocEntry = 0;
 
             try
@@ -235,39 +259,50 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 // Revertir la SALIDA (IGO del principal) ⇒ generar una ENTRADA (IGN).
                 if (ctx.InventoryGenExitsDocEntry > 0 && ctx.InventoryGenExitsData.Items.Count > 0)
                 {
-                    exitRevDocEntry = CrearEntradaMercancia(ctx.InventoryGenExitsData);
-                    ReferenciarDocs(exitRevDocEntry, BoObjectTypes.oInventoryGenEntry,
+                    entryRevDocEntry = CrearEntradaMercancia(ctx.InventoryGenExitsData);
+                    ReferenciarDocs(entryRevDocEntry, BoObjectTypes.oInventoryGenEntry,
                                     ctx.InventoryGenExitsDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
                 }
 
                 // Revertir la ENTRADA (IGN de subproductos) ⇒ generar una SALIDA (IGO).
                 if (ctx.InventoryGenEntriesDocEntry > 0)
                 {
-                   
                     var entriesData = ObtenerInfoLineas(oForm); // subproductos de la línea UDO
                     if (entriesData.Items.Count > 0)
                     {
-                        entryRevDocEntry = CrearSalidaMercancia(entriesData);
-                        ReferenciarDocs(entryRevDocEntry, BoObjectTypes.oInventoryGenExit,
+                        exitRevDocEntry = CrearSalidaMercancia(entriesData);
+                        ReferenciarDocs(exitRevDocEntry, BoObjectTypes.oInventoryGenExit,
                                         ctx.InventoryGenEntriesDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
                     }
                 }
+
+                // El estado Revertido se persiste en la misma transacción: si falla, se deshacen
+                // también los documentos de reversión y el registro sigue Completado.
+                bool actualizado = ActualizarResultadoTransformacion(docEntryUnit, CONSTANTS.STAGING_STATUS.REVERT,
+                    entryRevDocEntry: entryRevDocEntry > 0 ? entryRevDocEntry : (int?)null,
+                    exitRevDocEntry: exitRevDocEntry > 0 ? exitRevDocEntry : (int?)null);
+
+                if (!actualizado)
+                    throw new Exception(CONSTANTS.MESSAGES.REVERT_UDO_UPDATE_ERROR);
 
                 ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_Commit);
             }
             catch (Exception ex)
             {
+                if (ConnectionSDK.DIAPI.InTransaction)
+                    ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);
+
                 NotificationService.MostrarError($"Error revirtiendo la producción: {ex.Message}");
-                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);
+                HabilitarBotonRevertir(oForm, true);
                 return;
             }
 
             ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.REVERT;
-            ActualizarResultadoTransformacion(docEntryUnit, CONSTANTS.STAGING_STATUS.REVERT,
-                entryRevDocEntry: entryRevDocEntry > 0 ? entryRevDocEntry : (int?)null,
-                exitRevDocEntry: exitRevDocEntry > 0 ? exitRevDocEntry : (int?)null);
 
-            EscribirEstadoCabecera(oForm, ctx.PrincipalStatus);
+            // Recargar el registro (en vez de escribir el combo) deja el formulario en modo OK
+            // con el estado y los DocEntry de reversión persistidos.
+            RecargarRegistro(oForm, docEntryUnit);
+            AplicarHabilitacionPorEstado(oForm, ctx.PrincipalStatus);
         }
     }
 }

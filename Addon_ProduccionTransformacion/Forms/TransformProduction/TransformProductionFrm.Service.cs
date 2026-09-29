@@ -191,5 +191,26 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return false;
             }
         }
+
+        /// <summary>
+        /// Lee la cabecera del UDO desde la base (Repository → Mapper). Devuelve null si el
+        /// registro no existe.
+        /// </summary>
+        public TransformProductionUdoModel LeerCabeceraUdoPersistida(int docEntry)
+        {
+            if (docEntry <= 0) return null;
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerCabeceraUdoPersistida(oRecordSet, docEntry);
+                return MapearCabeceraUdo(oRecordSet);
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
+        }
     }
 }
