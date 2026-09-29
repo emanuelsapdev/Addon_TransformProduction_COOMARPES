@@ -122,6 +122,27 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Menú "Nuevo" (modo agregar): vuelve a habilitar la grilla y Cantidad consumida, que
+        /// quedan bloqueadas si antes se navegó a un Completado/Revertido. Producto lo habilita
+        /// SincronizarCampoProducto.
+        /// </summary>
+        public void ManejarModoAgregar(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+                if (oForm.Mode != SAPbouiCOM.BoFormMode.fm_ADD_MODE) return;
+
+                EstablecerEdicionDocumento(oForm, true);
+            }
+            finally
+            {
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+        }
+
+        /// <summary>
         /// Registro recién cargado (et_FORM_DATA_LOAD con ActionSuccess): reinicia el contexto,
         /// lo reconstruye desde el registro cargado, limpia la etiqueta de lotes y aplica la
         /// habilitación de campos/botones según su estado.

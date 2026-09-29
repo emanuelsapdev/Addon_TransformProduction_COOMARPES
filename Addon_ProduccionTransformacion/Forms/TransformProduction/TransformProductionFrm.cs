@@ -33,7 +33,12 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 {
                     var oActive = ConnectionSDK.UIAPI.Forms.ActiveForm;
                     if (oActive != null && oActive.TypeEx == FormType)
+                    {
                         ManejarSincronizacionProducto(oActive.UniqueID);
+
+                        if (pVal.MenuUID == CONSTANTS.SAP_MENUS.ADD)
+                            ManejarModoAgregar(oActive.UniqueID);
+                    }
                 }
                 catch (Exception ex)
                 {
