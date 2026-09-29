@@ -122,6 +122,36 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Registro recién cargado (et_FORM_DATA_LOAD con ActionSuccess): reinicia el contexto,
+        /// lo reconstruye desde el registro cargado, limpia la etiqueta de lotes y aplica la
+        /// habilitación de campos/botones según su estado.
+        /// </summary>
+        public void ManejarRegistroCargado(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+
+                var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+                ctx.ResetearContexto();
+                ReconstruirContextoDesdeForm(oForm, ctx);
+                LimpiarEtiquetaLotes(oForm);
+
+                oForm.Freeze(true);
+                AplicarHabilitacionPorEstado(oForm, ctx.PrincipalStatus);
+            }
+            finally
+            {
+                if (oForm != null)
+                {
+                    oForm.Freeze(false);
+                    MarshalGC.LiberarComObject(oForm);
+                }
+            }
+        }
+
+        /// <summary>
         /// Después de agregar el documento el formulario queda en uno nuevo: vacía el campo
         /// espejo de "Producto".
         /// </summary>

@@ -51,9 +51,11 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   en la misma transacción; si el update falla se hace rollback de todo (Crear y Confirmar).
   Confirmar valida contra la base (`PuedeConfirmarse`): solo Pendiente y sin DocEntry de
   entrada/salida. Pendiente de probar en SAP.
-- [ ] **TP-05 — `et_FORM_DATA_LOAD` en BeforeAction.** En ese momento el registro todavía no se
+- [x] **TP-05 — `et_FORM_DATA_LOAD` en BeforeAction.** En ese momento el registro todavía no se
   cargó: el contexto y la habilitación de botones se arman con datos del registro anterior.
   Usar `ActionSuccess`. Además el `finally` hace `oForm.Freeze(false)` antes de chequear null.
+  *Hecho:* el bloque corre con `ActionSuccess` y se delega a `ManejarRegistroCargado` (Service);
+  el `Freeze(false)` va dentro del chequeo de null. Pendiente de probar en SAP.
 - [ ] **TP-06 — Precio nuevo ignorado / fechas de lote vacías.** `CrearDocumentoInventario` no
   setea `Lines.UnitPrice` ni moneda: "Precio (nuevo)" no tiene efecto y el reingreso en la
   reversión se valúa al costo actual. La salida manda lotes con fechas `DateTime.MinValue`
