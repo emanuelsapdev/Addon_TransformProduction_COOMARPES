@@ -344,6 +344,36 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Un documento se puede confirmar una sola vez: el registro tiene que existir en la base,
+        /// estar Pendiente y no tener Entrada/Salida de mercancía. Se valida contra la cabecera
+        /// persistida (no contra el formulario, que puede estar desactualizado).
+        /// </summary>
+        public static bool PuedeConfirmarse(TransformProductionUdoModel udo, out string motivo)
+        {
+            motivo = null;
+
+            if (udo == null)
+            {
+                motivo = CONSTANTS.MESSAGES.CONFIRM_NOT_SAVED;
+                return false;
+            }
+
+            if (udo.EntryDocEntry > 0 || udo.ExitDocEntry > 0)
+            {
+                motivo = CONSTANTS.MESSAGES.CONFIRM_ALREADY_DONE;
+                return false;
+            }
+
+            if (udo.Status != CONSTANTS.STAGING_STATUS.PENDING)
+            {
+                motivo = CONSTANTS.MESSAGES.CONFIRM_NOT_PENDING + udo.Status;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Una producción/transformación se puede revertir una sola vez: el registro tiene que
         /// existir en la base, estar Completado y no tener documentos de reversión. Se valida
         /// contra la cabecera persistida (no contra el formulario, que puede estar desactualizado).

@@ -43,10 +43,14 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   almacén existente en OWHS, precio nuevo > 0, moneda y fechas de vencimiento, fabricación e
   ingreso del lote.
   Pendiente de probar en SAP.
-- [ ] **TP-04 — Resultado del update del UDO ignorado.** Si IGN/IGE se confirman pero
+- [x] **TP-04 — Resultado del update del UDO ignorado.** Si IGN/IGE se confirman pero
   `ActualizarResultadoTransformacion` falla, el documento queda Pendiente con el stock ya
   movido y se puede volver a confirmar (duplica movimientos). Revisar el `bool` devuelto y
   avisar/bloquear; idealmente actualizar el UDO dentro de la misma transacción.
+  *Hecho:* `CrearProduccion(ctx, udoDocEntry, ...)` crea IGN/IGO y actualiza el UDO a Completado
+  en la misma transacción; si el update falla se hace rollback de todo (Crear y Confirmar).
+  Confirmar valida contra la base (`PuedeConfirmarse`): solo Pendiente y sin DocEntry de
+  entrada/salida. Pendiente de probar en SAP.
 - [ ] **TP-05 — `et_FORM_DATA_LOAD` en BeforeAction.** En ese momento el registro todavía no se
   cargó: el contexto y la habilitación de botones se arman con datos del registro anterior.
   Usar `ActionSuccess`. Además el `finally` hace `oForm.Freeze(false)` antes de chequear null.

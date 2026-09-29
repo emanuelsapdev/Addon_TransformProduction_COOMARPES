@@ -1,5 +1,6 @@
 ﻿using Addon_TransformProduction.Common;
 using Addon_TransformProduction.Forms.WindowBatches;
+using Addon_TransformProduction.Models;
 using Addon_TransformProduction.Services;
 using Addon_TransformProduction.Tools;
 using SAPbobsCOM;
@@ -154,22 +155,27 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             BubbleEvent = true;
             var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
 
+            // Se valida contra la base (no el formulario): solo un Pendiente sin Entrada/Salida.
+            int.TryParse(ObtenerDocEntry(oForm), out int docEntry);
+            if (!PuedeConfirmarse(LeerCabeceraUdoPersistida(docEntry), out string motivo))
+            {
+                NotificationService.MostrarAlerta(motivo);
+                BubbleEvent = false;
+                return;
+            }
+
             if (!ValidarFormulario(oForm, ctx)) { BubbleEvent = false; return; }
 
             var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
             oMatrix.FlushToDataSource();
             ctx.InventoryGenEntriesData = ObtenerInfoLineas(oForm); // entrada desde líneas UDO
 
-            if (!CrearProduccion(ctx, out int entryDocEntry, out int exitDocEntry))
+            // Entrada/Salida + update a Completado en una sola transacción (TP-04).
+            if (!CrearProduccion(ctx, docEntry, out int entryDocEntry, out int exitDocEntry))
             { BubbleEvent = false; return; }
 
             ctx.InventoryGenEntriesDocEntry = entryDocEntry;
             ctx.InventoryGenExitsDocEntry = exitDocEntry;
-
-            ActualizarResultadoTransformacion(
-                Convert.ToInt32(ObtenerDocEntry(oForm)),
-                CONSTANTS.STAGING_STATUS.COMPLETED,
-                entryDocEntry, exitDocEntry);
 
             EscribirEstadoCabecera(oForm, ctx.PrincipalStatus);
             AbrirDocumentosRelacionados(ctx);

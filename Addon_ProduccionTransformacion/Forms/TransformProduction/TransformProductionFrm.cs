@@ -233,8 +233,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
                     ManejarConfirmarProduccion(oForm, out BubbleEvent);
                     string docEntry = ObtenerDocEntry(oForm);
+                    
                     ManejarCierreFormulario(pVal.FormUID);
-                    ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
+                    // ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
+                    
                 }
                 finally
                 {
@@ -248,7 +250,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
 
             // SHOW_DOCUMENTS (Item_5): abre los documentos de mercancía de la producción.
-            if (pVal.BeforeAction && pVal.EventType == BoEventTypes.et_ITEM_PRESSED
+            if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_CLICK
                 && pVal.ItemUID == CONSTANTS.UID.BUTTONS.SHOW_DOCUMENTS)
             {
                 ManejarVerDocumentos(FormUID);
