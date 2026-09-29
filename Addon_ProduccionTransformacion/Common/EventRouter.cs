@@ -16,11 +16,17 @@ namespace Addon_TransformProduction.Common
         // Registro de manejadores: clave = FormTypeEx, valor = handler singleton
         private readonly Dictionary<string, IFormEventHandler> _handlers = new Dictionary<string, IFormEventHandler>();
 
+        // Respaldo para forms cargados por XML con UID dinámico (p.ej. WINDOW_BATCHES_3):
+        // clave = prefijo del FormUID, valor = handler. Se usa si el FormTypeEx no matchea.
+        private readonly Dictionary<string, IFormEventHandler> _handlersPorPrefijoUid = new Dictionary<string, IFormEventHandler>();
+
         public EventRouter()
         {
             // Registrar todos los formularios del addon
             _handlers.Add(TransformProductionFrm.FormType, new TransformProductionFrm());
-            _handlers.Add(WindowBatchesFrm.FormType, new WindowBatchesFrm());
+            var windowBatches = new WindowBatchesFrm();
+            _handlers.Add(WindowBatchesFrm.FormType, windowBatches);
+            _handlersPorPrefijoUid.Add(WindowBatchesFrm.FormUniqueID + "_", windowBatches);
 
             SuscribirEventos();
         }
@@ -46,6 +52,22 @@ namespace Addon_TransformProduction.Common
         {
             _handlers.TryGetValue(formTypeEx, out var handler);
             return handler;
+        }
+
+        /// <summary>
+        /// Handler por FormTypeEx y, si no hay, por prefijo del FormUID. Null si ninguno lo maneja.
+        /// </summary>
+        public IFormEventHandler ObtenerHandler(string formTypeEx, string formUid)
+        {
+            var handler = ObtenerHandler(formTypeEx);
+            if (handler != null || string.IsNullOrEmpty(formUid)) return handler;
+
+            foreach (var par in _handlersPorPrefijoUid)
+            {
+                if (formUid.StartsWith(par.Key, StringComparison.Ordinal))
+                    return par.Value;
+            }
+            return null;
         }
     }
 }

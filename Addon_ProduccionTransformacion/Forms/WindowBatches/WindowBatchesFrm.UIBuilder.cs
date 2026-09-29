@@ -2,6 +2,7 @@ using Addon_TransformProduction.Common;
 using SAPbouiCOM;
 using System;
 using System.IO;
+using System.Xml;
 
 namespace Addon_TransformProduction.Forms.WindowBatches
 {
@@ -22,14 +23,34 @@ namespace Addon_TransformProduction.Forms.WindowBatches
         /// </summary>
         private SAPbouiCOM.Form ConstruirFormulario(string typeCount)
         {
-            string xml = File.ReadAllText(RutaXmlFormulario);
+            string formUid = CONSTANTS.ObtenerFormUID(typeCount);
+            string xml = PrepararXmlFormulario(File.ReadAllText(RutaXmlFormulario), formUid);
 
             ConnectionSDK.UIAPI.LoadBatchActions(ref xml);
 
-            var oForm = ConnectionSDK.UIAPI.Forms.Item(CONSTANTS.FORM_UNIQUE_ID);
+            var oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
             oForm.Visible = true;
 
             return oForm;
+        }
+
+        /// <summary>
+        /// Reemplaza en el XML de B1 Studio el uid del form (WINDOW_BATCHES) por
+        /// <paramref name="formUid"/> y el FormType (-1) por <see cref="CONSTANTS.FORM_TYPE"/>.
+        /// </summary>
+        private static string PrepararXmlFormulario(string xml, string formUid)
+        {
+            var oXmlDoc = new XmlDocument();
+            oXmlDoc.LoadXml(xml);
+
+            var oFormNode = (XmlElement)oXmlDoc.SelectSingleNode("/Application/forms/action/form");
+            if (oFormNode == null)
+                throw new InvalidOperationException($"El XML del formulario de lotes no tiene el nodo form: {RutaXmlFormulario}");
+
+            oFormNode.SetAttribute("uid", formUid);
+            oFormNode.SetAttribute("FormType", CONSTANTS.FORM_TYPE);
+
+            return oXmlDoc.OuterXml;
         }
     }
 }

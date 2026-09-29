@@ -16,7 +16,7 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   *Hecho:* se valida contra la cabecera leída de la base (`PuedeRevertirse`), el botón se
   deshabilita al confirmar, el update del UDO va dentro de la transacción de reversión y al
   terminar se recarga el registro (`RecargarRegistro`, modo OK). Pendiente de probar en SAP.
-- [ ] **TP-02 — Formulario de lotes con UID fijo.** `WindowBatchesFrm.ConstruirFormulario` no
+- [x] **TP-02 — Formulario de lotes con UID fijo.** `WindowBatchesFrm.ConstruirFormulario` no
   modifica el XML: el form queda `WINDOW_BATCHES` en vez de `WINDOW_BATCHES_{typeCount}`.
   - `ObtenerTypeCount` devuelve null → se usa el TypeCount del form de lotes (1) → los lotes
     se guardan en el contexto de la producción 1, no en la que los pidió.
@@ -25,6 +25,9 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   - Reabrir lotes con el form ya abierto da error (LoadBatchActions con UID repetido).
   *Propuesta:* reemplazar `uid="WINDOW_BATCHES"` por `ObtenerFormUID(typeCount)` en el XML
   antes de `LoadBatchActions`, y en `MostrarFormulario` buscar el form por ese UID.
+  *Hecho:* `PrepararXmlFormulario` fija `uid` = `WINDOW_BATCHES_{typeCount}` y `FormType` =
+  `CONSTANTS.FORM_TYPE` en el XML antes de `LoadBatchActions`; `MostrarFormulario` busca el
+  form por ese UID. Pendiente de probar en SAP.
 - [ ] **TP-03 — Validación después de grabar / Completado sin documentos.** La creación de la
   Entrada/Salida corre en `et_FORM_DATA_ADD` con `ActionSuccess`: el UDO ya está grabado y
   `BubbleEvent = false` no lo deshace. Si `ManejarCreacionProduccion` falla, igual se llama a

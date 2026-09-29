@@ -6,7 +6,12 @@ namespace Addon_TransformProduction.Forms.WindowBatches
     {
         public static class CONSTANTS
         {
-            public const string FORM_TYPE = "60004";
+            /// <summary>
+            /// FormType propio (string con prefijo del addon) que se fija en el XML de B1 Studio,
+            /// para no depender del número que SAP asigna a los forms con FormType="-1" ni chocar
+            /// con un form estándar.
+            /// </summary>
+            public const string FORM_TYPE = "ITPS_BATCHES";
             public const string FORM_UNIQUE_ID = "WINDOW_BATCHES";
             public const string TITLE = "Lotes";
 
