@@ -284,6 +284,14 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 {
                     oForm = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
 
+                    // Líneas de detalle (vale para Pendiente y Crear): si no hay líneas o alguna
+                    // no tiene lote, no se graba el UDO.
+                    if (!ValidarLineasDetalle(oForm))
+                    {
+                        BubbleEvent = false;
+                        return;
+                    }
+
                     // VALIDAR QUE HAYA CARGADO EL TIPO DE CAMBIO DEL DIA -------------
                     // TRAER TIPO DE CAMBIO DEL DIA Y VALIDAR QUE NO SEA 0
                     Recordset oRec = ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
@@ -303,8 +311,16 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     int respuesta = ConnectionSDK.UIAPI.MessageBox("¿Confirma la creación y continuación con las transacciones correspondientes? De lo contrario, quedará pendiente para su posterior gestión.", 1, "Pendiente", "Crear", "Cancelar");
                     var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
 
+                    ctx.CompletarAlAgregar = false;
+
                     if (respuesta == 2) // Crear - Estado Completado (transaccionar Entrada y Salida)
                     {
+                        // Se valida ANTES de grabar: si falla, BubbleEvent = false y el UDO no se agrega.
+                        if (!PrepararCreacionCompletada(oForm, ctx))
+                        {
+                            BubbleEvent = false;
+                            return;
+                        }
                         ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.COMPLETED;
                     }
                     else if (respuesta == 1) // Crear - Estado Pendiente
@@ -314,7 +330,12 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     else
                     {
                         BubbleEvent = false;
+                        return;
                     }
+
+                    // El registro se graba siempre Pendiente: pasa a Completado recién cuando se
+                    // crean la Entrada/Salida en el after-add (ManejarProduccionAgregada).
+                    EscribirEstadoCabecera(oForm, CONSTANTS.STAGING_STATUS.PENDING);
                 }
                 finally
                 {
@@ -395,45 +416,24 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 try
                 {
                     oForm = ConnectionSDK.UIAPI.Forms.Item(boi.FormUID);
-                    string docEntry = ObtenerDocEntry(oForm);
+
+                    // Tras agregar, el formulario queda en un documento nuevo: el DocEntry se
+                    // toma del ObjectKey del evento (no del formulario).
+                    int docEntry = ObtenerDocEntryAgregado(boi.ObjectKey);
 
                     var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-
-                    try
-                    {
-
-                        switch (ctx.PrincipalStatus)
-                        {
-                            case CONSTANTS.STAGING_STATUS.COMPLETED:
-
-                                ManejarCreacionProduccion(oForm, out BubbleEvent);   // crea IGN+IGO y setea ctx.DocEntries
-
-                                ActualizarResultadoTransformacion(
-                                Convert.ToInt32(docEntry),
-                                ctx.PrincipalStatus,
-                                ctx.InventoryGenEntriesDocEntry > 0 ? ctx.InventoryGenEntriesDocEntry : (int?)null,
-                                ctx.InventoryGenExitsDocEntry > 0 ? ctx.InventoryGenExitsDocEntry : (int?)null);
-
-                                AbrirDocumentosRelacionados(ctx);
-
-                                break;
-                            case CONSTANTS.STAGING_STATUS.PENDING:
-                                break;
-
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        NotificationService.MostrarError(ex.Message);
-                        BubbleEvent = false;
-                        return;
-                    }
+                    ManejarProduccionAgregada(docEntry, ctx);
 
                     ManejarCierreFormulario(boi.FormUID);
 
                     LimpiarEtiquetaLotes(oForm);
 
-                    ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
+                    if (docEntry > 0)
+                        ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry.ToString());
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.MostrarError($"(OnFormDataEvent) {boi.EventType}: {ex.Message}");
                 }
                 finally
                 {

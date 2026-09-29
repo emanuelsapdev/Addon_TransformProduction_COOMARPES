@@ -4,6 +4,7 @@ using Addon_TransformProduction.Services;
 using Addon_TransformProduction.Tools;
 using SAPbobsCOM;
 using System;
+using System.Collections.Generic;
 
 namespace Addon_TransformProduction.Forms.TransformProduction
 {
@@ -206,6 +207,70 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
                 oRecordSet = ObtenerCabeceraUdoPersistida(oRecordSet, docEntry);
                 return MapearCabeceraUdo(oRecordSet);
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
+        }
+    
+
+        /// <summary>
+        /// After-add del UDO (et_FORM_DATA_ADD con ActionSuccess). El registro ya está grabado
+        /// en estado Pendiente; si el usuario eligió "Crear" se generan la Entrada/Salida con los
+        /// datos validados en el BeforeAction y solo si se crean se pasa a Completado. Si fallan,
+        /// el documento queda Pendiente para confirmarlo después.
+        /// </summary>
+        public void ManejarProduccionAgregada(int docEntry, TransformProductionContext ctx)
+        {
+            if (!ctx.CompletarAlAgregar) return;
+
+            ctx.CompletarAlAgregar = false;
+            ctx.InventoryGenEntriesData = ctx.EntradasAlAgregar ?? new InventoryGenModel();
+            ctx.InventoryGenExitsData = ctx.SalidasAlAgregar ?? new InventoryGenModel();
+            ctx.EntradasAlAgregar = null;
+            ctx.SalidasAlAgregar = null;
+
+            if (docEntry <= 0)
+            {
+                NotificationService.MostrarAlerta(CONSTANTS.MESSAGES.CREATE_DOCS_FAILED_PENDING);
+                return;
+            }
+
+            if (!CrearProduccion(ctx, out int entryDocEntry, out int exitDocEntry))
+            {
+                ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.PENDING;
+                NotificationService.MostrarAlerta(CONSTANTS.MESSAGES.CREATE_DOCS_FAILED_PENDING);
+                return;
+            }
+
+            ctx.InventoryGenEntriesDocEntry = entryDocEntry;
+            ctx.InventoryGenExitsDocEntry = exitDocEntry;
+
+            if (!ActualizarResultadoTransformacion(docEntry, CONSTANTS.STAGING_STATUS.COMPLETED, entryDocEntry, exitDocEntry))
+            {
+                NotificationService.MostrarAlerta(string.Format(
+                    CONSTANTS.MESSAGES.CREATE_UDO_UPDATE_FAILED, entryDocEntry, exitDocEntry, docEntry));
+                return;
+            }
+
+            AbrirDocumentosRelacionados(ctx);
+        }
+    
+
+        /// <summary>
+        /// Códigos de almacén que existen en SAP (OWHS) entre los indicados (Repository → Mapper).
+        /// </summary>
+        public HashSet<string> ObtenerAlmacenesExistentes(ICollection<string> whsCodes)
+        {
+            if (whsCodes == null || whsCodes.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerAlmacenesExistentes(oRecordSet, whsCodes);
+                return MapearCodigosAlmacen(oRecordSet);
             }
             finally
             {

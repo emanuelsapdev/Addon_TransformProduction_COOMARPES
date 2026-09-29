@@ -104,32 +104,30 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
         }
 
-        public void ManejarCreacionProduccion(SAPbouiCOM.Form oForm, out bool BubbleEvent)
+        /// <summary>
+        /// BeforeAction de "Crear" con la opción Completado: valida el formulario (artículo,
+        /// cantidad, lotes y líneas de subproductos) mientras todavía no se grabó el UDO, y
+        /// guarda en el contexto la entrada/salida a generar al agregarse. Devuelve false si no
+        /// es válido (el caller corta con BubbleEvent = false y no se graba nada).
+        /// </summary>
+        public bool PrepararCreacionCompletada(SAPbouiCOM.Form oForm, TransformProductionContext ctx)
         {
-            BubbleEvent = true;
-            var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-            if (!ValidarFormulario(oForm, ctx)) 
-            { 
-                BubbleEvent = false; 
-                return; 
-            }
+            if (!ValidarFormulario(oForm, ctx)) return false;
 
             var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
             oMatrix.FlushToDataSource();
 
-            
-            ctx.InventoryGenEntriesData = ObtenerInfoLineas(oForm);
-
-            if (!CrearProduccion(ctx, out int entryDocEntry, out int exitDocEntry))
+            var entradas = ObtenerInfoLineas(oForm);
+            if (entradas.Items.Count == 0)
             {
-                BubbleEvent = false;
-                return;
+                NotificationService.MostrarError(CONSTANTS.MESSAGES.CREATE_NO_ENTRY_LINES);
+                return false;
             }
 
-            EscribirEstadoCabecera(oForm, ctx.PrincipalStatus);
-
-            ctx.InventoryGenEntriesDocEntry = entryDocEntry;
-            ctx.InventoryGenExitsDocEntry = exitDocEntry;
+            ctx.EntradasAlAgregar = entradas;
+            ctx.SalidasAlAgregar = ctx.InventoryGenExitsData;
+            ctx.CompletarAlAgregar = true;
+            return true;
         }
         public void ManejarCreacionProduccionPendiente(SAPbouiCOM.Form oForm, out bool BubbleEvent)
         {

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
@@ -61,6 +62,96 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             return true;
         }
 
+
+        /// <summary>
+        /// Valida las líneas de detalle antes de grabar el UDO (Pendiente o Crear). Tiene que haber
+        /// al menos una línea con subproducto, y cada una debe tener: número de lote, cantidad
+        /// obtenida mayor que cero, almacén existente en SAP, precio nuevo mayor que cero, moneda
+        /// y fechas de vencimiento, fabricación e ingreso del lote. Las filas sin subproducto
+        /// (p.ej. la fila vacía final de la matriz) se ignoran. Corta en el primer error.
+        /// </summary>
+        public bool ValidarLineasDetalle(SAPbouiCOM.Form oForm)
+        {
+            var oMatrix = (SAPbouiCOM.Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
+            oMatrix.FlushToDataSource();
+
+            var oDbDataSource = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
+
+            // Línea (1-based) y subproducto por almacén, para informar el error de existencia.
+            var almacenesPorLinea = new List<Tuple<int, string, string>>();
+
+            for (int i = 0; i < oDbDataSource.Size; i++)
+            {
+                string itemCode = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i);
+                if (string.IsNullOrWhiteSpace(itemCode)) continue;
+
+                int linea = i + 1;
+
+                if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_BATCH, linea, itemCode);
+
+                if (ParseDouble(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i)) <= 0)
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_INVALID_QTY, linea, itemCode);
+
+                string whsCode = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.WAREHOUSE, i);
+                if (string.IsNullOrWhiteSpace(whsCode))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_WHS, linea, itemCode);
+
+                if (ParseDecimal(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.PRICE, i)) <= 0)
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_INVALID_PRICE, linea, itemCode);
+
+                if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_CURRENCY, linea, itemCode);
+
+                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de vencimiento del lote");
+
+                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de fabricación del lote");
+
+                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de ingreso del lote");
+
+                almacenesPorLinea.Add(Tuple.Create(linea, itemCode, whsCode));
+            }
+
+            if (almacenesPorLinea.Count == 0)
+            {
+                NotificationService.MostrarError(CONSTANTS.MESSAGES.CREATE_NO_DETAIL_LINES);
+                return false;
+            }
+
+            var codigos = almacenesPorLinea.Select(l => l.Item3).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var existentes = ObtenerAlmacenesExistentes(codigos);
+
+            var sinAlmacen = almacenesPorLinea.FirstOrDefault(l => !existentes.Contains(l.Item3));
+            if (sinAlmacen != null)
+                return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WHS_NOT_FOUND, sinAlmacen.Item1, sinAlmacen.Item2, sinAlmacen.Item3);
+
+            return true;
+        }
+
+        private static string LeerValorLinea(SAPbouiCOM.DBDataSource oDbDataSource, string campo, int fila)
+        {
+            return (oDbDataSource.GetValue(campo, fila) ?? string.Empty).Trim();
+        }
+
+        private static bool ErrorLinea(string formato, params object[] args)
+        {
+            NotificationService.MostrarError(string.Format(formato, args));
+            return false;
+        }
+
+        /// <summary>
+        /// El DBDataSource devuelve las fechas como "yyyyMMdd" (vacío si no hay fecha).
+        /// </summary>
+        private static bool EsFechaCargada(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+
+            return DateTime.TryParseExact(value, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
+                || DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.None, out _);
+        }
 
         /// <summary>
         /// 
@@ -281,6 +372,19 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// DocEntry del registro recién agregado, desde el ObjectKey del FormDataEvent
+        /// (p.ej. "&lt;DocumentParams&gt;&lt;DocEntry&gt;12&lt;/DocEntry&gt;&lt;/DocumentParams&gt;"). Devuelve 0 si no se
+        /// puede leer. Se usa en vez del formulario porque tras agregar queda en un documento nuevo.
+        /// </summary>
+        public static int ObtenerDocEntryAgregado(string objectKey)
+        {
+            if (string.IsNullOrWhiteSpace(objectKey)) return 0;
+
+            var match = Regex.Match(objectKey, @"<DocEntry>\s*(\d+)\s*</DocEntry>", RegexOptions.IgnoreCase);
+            return match.Success && int.TryParse(match.Groups[1].Value, out int docEntry) ? docEntry : 0;
         }
 
         public static void AbrirDocumentosRelacionados(TransformProductionContext ctx)

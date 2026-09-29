@@ -216,6 +216,17 @@
                 public static string MENU_REGISTER_ERROR_PREFIX = "Error registrando el menú del addon: ";
                 public static string FORM_OPEN_ERROR_PREFIX = "Error abriendo un documento nuevo de producción/transformación: ";
                 public static string FORM_INIT_ERROR_PREFIX = "Error inicializando el formulario de producción/transformación: ";
+                public static string CREATE_NO_DETAIL_LINES = "Debe cargar al menos una línea de detalle (subproducto).";
+                public static string CREATE_LINE_WITHOUT_BATCH = "La línea {0} (subproducto {1}) no tiene número de lote.";
+                public static string CREATE_LINE_INVALID_QTY = "La línea {0} (subproducto {1}): la cantidad obtenida debe ser mayor que cero.";
+                public static string CREATE_LINE_WITHOUT_WHS = "La línea {0} (subproducto {1}) no tiene almacén.";
+                public static string CREATE_LINE_WHS_NOT_FOUND = "La línea {0} (subproducto {1}): el almacén {2} no existe.";
+                public static string CREATE_LINE_INVALID_PRICE = "La línea {0} (subproducto {1}): el precio nuevo debe ser mayor que cero.";
+                public static string CREATE_LINE_WITHOUT_CURRENCY = "La línea {0} (subproducto {1}) no tiene moneda.";
+                public static string CREATE_LINE_WITHOUT_DATE = "La línea {0} (subproducto {1}) no tiene {2}.";
+                public static string CREATE_NO_ENTRY_LINES = "Debe haber al menos una línea de subproducto con lote y cantidad obtenida mayor que cero.";
+                public static string CREATE_DOCS_FAILED_PENDING = "El documento se grabó en estado " + STAGING_STATUS.PENDING + " porque no se pudieron crear la Entrada/Salida de mercancía. Corrija el problema y use Confirmar producción.";
+                public static string CREATE_UDO_UPDATE_FAILED = "Se crearon la Entrada ({0}) y la Salida ({1}) de mercancía, pero no se pudo actualizar el documento {2} a " + STAGING_STATUS.COMPLETED + ". No lo confirme de nuevo: revise los documentos y corrija el estado.";
                 public static string CFL_ITEM_BUILD_ERROR_PREFIX = "Error creando el campo Producto con la lista de artículos con lista de materiales: ";
 
                 public static string REVERT_NOT_COMPLETED = "Solo se puede revertir un documento en estado " + STAGING_STATUS.COMPLETED + ". Estado actual: ";
