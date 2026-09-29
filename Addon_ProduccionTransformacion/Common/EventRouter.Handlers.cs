@@ -15,7 +15,7 @@ namespace Addon_TransformProduction.Common
             BubbleEvent = true;
             try
             {
-                var handler = ObtenerHandler(pVal.FormTypeEx);
+                var handler = ObtenerHandler(pVal.FormTypeEx, FormUID);
                 if (handler != null)
                     handler.OnItemEvent(FormUID, ref pVal, out BubbleEvent);
             }
@@ -33,7 +33,7 @@ namespace Addon_TransformProduction.Common
             BubbleEvent = true;
             try
             {
-                var handler = ObtenerHandler(boi.FormTypeEx);
+                var handler = ObtenerHandler(boi.FormTypeEx, boi.FormUID);
                 if (handler != null)
                     handler.OnFormDataEvent(ref boi, out BubbleEvent);
             }
