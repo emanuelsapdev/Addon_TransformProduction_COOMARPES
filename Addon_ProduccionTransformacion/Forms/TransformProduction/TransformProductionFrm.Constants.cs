@@ -226,7 +226,10 @@
                 public static string CREATE_LINE_WITHOUT_DATE = "La línea {0} (subproducto {1}) no tiene {2}.";
                 public static string CREATE_NO_ENTRY_LINES = "Debe haber al menos una línea de subproducto con lote y cantidad obtenida mayor que cero.";
                 public static string CREATE_DOCS_FAILED_PENDING = "El documento se grabó en estado " + STAGING_STATUS.PENDING + " porque no se pudieron crear la Entrada/Salida de mercancía. Corrija el problema y use Confirmar producción.";
-                public static string CREATE_UDO_UPDATE_FAILED = "Se crearon la Entrada ({0}) y la Salida ({1}) de mercancía, pero no se pudo actualizar el documento {2} a " + STAGING_STATUS.COMPLETED + ". No lo confirme de nuevo: revise los documentos y corrija el estado.";
+                public static string COMPLETE_UDO_UPDATE_ERROR = "No se pudo actualizar el documento a " + STAGING_STATUS.COMPLETED + ": se deshicieron la Entrada/Salida de mercancía.";
+                public static string CONFIRM_NOT_SAVED = "Guarde el documento antes de confirmarlo.";
+                public static string CONFIRM_ALREADY_DONE = "El documento ya tiene Entrada/Salida de mercancía: no se puede confirmar de nuevo.";
+                public static string CONFIRM_NOT_PENDING = "Solo se puede confirmar un documento en estado " + STAGING_STATUS.PENDING + ". Estado actual: ";
                 public static string CFL_ITEM_BUILD_ERROR_PREFIX = "Error creando el campo Producto con la lista de artículos con lista de materiales: ";
 
                 public static string REVERT_NOT_COMPLETED = "Solo se puede revertir un documento en estado " + STAGING_STATUS.COMPLETED + ". Estado actual: ";

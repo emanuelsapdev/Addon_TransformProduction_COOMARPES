@@ -158,15 +158,19 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// (subproductos obtenidos, <see cref="TransformProductionContext.InventoryGenEntriesData"/>)
         /// y la salida de mercancía (artículo principal consumido,
         /// <see cref="TransformProductionContext.InventoryGenExitsData"/>), las relaciona entre sí
-        /// vía documentos referenciados y, si ambas se crean sin error, deja que continúe la
-        /// creación del registro del UDO en estado Completado.
+        /// vía documentos referenciados y actualiza el registro <paramref name="udoDocEntry"/> del
+        /// UDO a Completado con sus DocEntry. Los documentos y el update del UDO van en la misma
+        /// transacción: si algo falla se deshace todo y el registro sigue Pendiente (sin stock
+        /// movido), así no se puede volver a confirmar duplicando movimientos.
         /// </summary>
-        public bool CrearProduccion(TransformProductionContext ctx, out int entryDocEntry, out int exitDocEntry)
+        public bool CrearProduccion(TransformProductionContext ctx, int udoDocEntry, out int entryDocEntry, out int exitDocEntry)
         {
             entryDocEntry = 0;
             exitDocEntry = 0;
             try
             {
+                if (udoDocEntry <= 0) throw new ArgumentOutOfRangeException(nameof(udoDocEntry));
+
                 ConnectionSDK.DIAPI.StartTransaction();
                 // Entrada de mercancía: subproductos obtenidos de la transformación.
                 entryDocEntry = CrearEntradaMercancia(ctx.InventoryGenEntriesData);
@@ -176,9 +180,12 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 // ("Documentos Referenciados").
                 exitDocEntry = CrearSalidaMercancia(ctx.InventoryGenExitsData);
 
-                ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.COMPLETED;
+                if (!ActualizarResultadoTransformacion(udoDocEntry, CONSTANTS.STAGING_STATUS.COMPLETED, entryDocEntry, exitDocEntry))
+                    throw new Exception(CONSTANTS.MESSAGES.COMPLETE_UDO_UPDATE_ERROR);
 
                 ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_Commit);
+
+                ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.COMPLETED;
 
                 ReferenciarDocs(entryDocEntry, BoObjectTypes.oInventoryGenEntry, exitDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
                 ReferenciarDocs(exitDocEntry, BoObjectTypes.oInventoryGenExit, entryDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
@@ -187,8 +194,12 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
             catch (Exception ex)
             {
+                if (ConnectionSDK.DIAPI.InTransaction)
+                    ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);
+
+                entryDocEntry = 0;
+                exitDocEntry = 0;
                 NotificationService.MostrarError($"Error creando la producción (Entrada/Salida de mercancía): {ex.Message}");
-                ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_RollBack);   
                 return false;
             }
         }
@@ -237,7 +248,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return;
             }
 
-            if (!CrearProduccion(ctx, out int entryDocEntry, out int exitDocEntry))
+            // Entrada/Salida + update a Completado en una sola transacción (TP-04).
+            if (!CrearProduccion(ctx, docEntry, out int entryDocEntry, out int exitDocEntry))
             {
                 ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.PENDING;
                 NotificationService.MostrarAlerta(CONSTANTS.MESSAGES.CREATE_DOCS_FAILED_PENDING);
@@ -246,13 +258,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             ctx.InventoryGenEntriesDocEntry = entryDocEntry;
             ctx.InventoryGenExitsDocEntry = exitDocEntry;
-
-            if (!ActualizarResultadoTransformacion(docEntry, CONSTANTS.STAGING_STATUS.COMPLETED, entryDocEntry, exitDocEntry))
-            {
-                NotificationService.MostrarAlerta(string.Format(
-                    CONSTANTS.MESSAGES.CREATE_UDO_UPDATE_FAILED, entryDocEntry, exitDocEntry, docEntry));
-                return;
-            }
 
             AbrirDocumentosRelacionados(ctx);
         }
