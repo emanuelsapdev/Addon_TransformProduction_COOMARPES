@@ -83,6 +83,26 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Al activar el formulario asegura el campo "Producto" con CFL filtrado (idempotente:
+        /// solo trabaja la primera vez o si un paso anterior falló) y, si se acaba de crear, lo
+        /// sincroniza con el registro.
+        /// </summary>
+        public void ManejarActivacionCampoProducto(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+                if (AsegurarCampoProductoConFiltro(oForm))
+                    SincronizarCampoProducto(oForm);
+            }
+            finally
+            {
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+        }
+
+        /// <summary>
         /// Re-sincroniza el campo espejo de "Producto" con el registro cargado (navegación,
         /// cambio de modo, reactivación del formulario).
         /// </summary>

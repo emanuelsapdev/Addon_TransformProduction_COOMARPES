@@ -96,43 +96,114 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// Crea el campo espejo de "Producto" (ver CONSTANTS.UID.CHOOSE_FROM_LIST): UserDataSource,
-        /// CFL de artículos filtrado por lista de materiales y EditText en la misma posición que
-        /// el campo original, que queda oculto. Idempotente: si el formulario ya lo tiene, no
-        /// vuelve a crear nada.
+        /// Asegura el campo espejo de "Producto" (ver CONSTANTS.UID.CHOOSE_FROM_LIST): UserDataSource,
+        /// CFL de artículos filtrado por lista de materiales, EditText en la misma posición que
+        /// el campo original y el original oculto. Se llama en et_FORM_ACTIVATE (en et_FORM_LOAD
+        /// SAP rechaza modificar el campo original del UDO con "Invalid item"). Cada paso es
+        /// idempotente, así que si alguno falla se reintenta en la próxima activación.
+        /// Devuelve true si en esta llamada se creó el campo espejo.
         /// </summary>
-        public void CrearCampoProductoConFiltro(SAPbouiCOM.Form oForm)
+        public bool AsegurarCampoProductoConFiltro(SAPbouiCOM.Form oForm)
         {
+            string paso = string.Empty;
+            bool creado = false;
             try
             {
-                if (ExisteItem(oForm, CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR)) return;
+                paso = "UserDataSource";
+                AsegurarUserDataSourceProducto(oForm);
 
-                oForm.DataSources.UserDataSources.Add(
-                    CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE, BoDataType.dt_SHORT_TEXT, 50);
+                paso = "ChooseFromList";
+                AsegurarChooseFromListArticulos(oForm);
 
-                ChooseFromList oCfl = CrearChooseFromListArticulos(oForm);
-                AplicarFiltroListaMateriales(oCfl);
+                if (!ExisteItem(oForm, CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR))
+                {
+                    paso = "crear campo espejo";
+                    CrearCampoEspejoProducto(oForm);
+                    creado = true;
+                }
 
                 SAPbouiCOM.Item oOriginal = oForm.Items.Item(CONSTANTS.UID.HEADER.ITEM_CODE);
-                SAPbouiCOM.Item oEspejo = oForm.Items.Add(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR, BoFormItemTypes.it_EDIT);
-                oEspejo.Left = oOriginal.Left;
-                oEspejo.Top = oOriginal.Top;
-                oEspejo.Width = oOriginal.Width;
-                oEspejo.Height = oOriginal.Height;
-                oEspejo.FromPane = oOriginal.FromPane;
-                oEspejo.ToPane = oOriginal.ToPane;
+                if (oOriginal.Visible)
+                {
+                    paso = "quitar foco del campo original";
+                    QuitarFocoCampoOriginal(oForm);
 
-                var oEdit = (EditText)oEspejo.Specific;
-                oEdit.DataBind.SetBound(true, "", CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE);
-                oEdit.ChooseFromListUID = CONSTANTS.UID.CHOOSE_FROM_LIST.UID;
-                oEdit.ChooseFromListAlias = CONSTANTS.UID.CHOOSE_FROM_LIST.ALIAS;
+                    paso = "ocultar campo original";
+                    oOriginal.Visible = false;
 
-                oOriginal.Visible = false;
-                oForm.Items.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_LABEL).LinkTo = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR;
+                    paso = "etiqueta";
+                    oForm.Items.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_LABEL).LinkTo = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR;
+                }
             }
             catch (Exception ex)
             {
-                NotificationService.MostrarError(CONSTANTS.MESSAGES.CFL_ITEM_BUILD_ERROR_PREFIX + ex.Message);
+                NotificationService.MostrarError($"{CONSTANTS.MESSAGES.CFL_ITEM_BUILD_ERROR_PREFIX}({paso}) {ex.Message}");
+            }
+
+            return creado;
+        }
+
+        private static void AsegurarUserDataSourceProducto(SAPbouiCOM.Form oForm)
+        {
+            try
+            {
+                oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE);
+            }
+            catch
+            {
+                oForm.DataSources.UserDataSources.Add(
+                    CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE, BoDataType.dt_SHORT_TEXT, 50);
+            }
+        }
+
+        private static void AsegurarChooseFromListArticulos(SAPbouiCOM.Form oForm)
+        {
+            ChooseFromList oCfl;
+            try
+            {
+                oCfl = oForm.ChooseFromLists.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.UID);
+                return; // ya creado y filtrado
+            }
+            catch
+            {
+                oCfl = CrearChooseFromListArticulos(oForm);
+            }
+
+            AplicarFiltroListaMateriales(oCfl);
+        }
+
+        private static void CrearCampoEspejoProducto(SAPbouiCOM.Form oForm)
+        {
+            SAPbouiCOM.Item oOriginal = oForm.Items.Item(CONSTANTS.UID.HEADER.ITEM_CODE);
+            SAPbouiCOM.Item oEspejo = oForm.Items.Add(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR, BoFormItemTypes.it_EDIT);
+            oEspejo.Left = oOriginal.Left;
+            oEspejo.Top = oOriginal.Top;
+            oEspejo.Width = oOriginal.Width;
+            oEspejo.Height = oOriginal.Height;
+            oEspejo.FromPane = oOriginal.FromPane;
+            oEspejo.ToPane = oOriginal.ToPane;
+
+            var oEdit = (EditText)oEspejo.Specific;
+            oEdit.DataBind.SetBound(true, "", CONSTANTS.UID.CHOOSE_FROM_LIST.USER_DATASOURCE);
+            oEdit.ChooseFromListUID = CONSTANTS.UID.CHOOSE_FROM_LIST.UID;
+            oEdit.ChooseFromListAlias = CONSTANTS.UID.CHOOSE_FROM_LIST.ALIAS;
+        }
+
+        /// <summary>
+        /// SAP no deja ocultar el item que tiene el foco: si lo tiene el campo original, se lo
+        /// pasa al campo espejo (o, si no se puede, a la cantidad consumida).
+        /// </summary>
+        private static void QuitarFocoCampoOriginal(SAPbouiCOM.Form oForm)
+        {
+            if (oForm.ActiveItem != CONSTANTS.UID.HEADER.ITEM_CODE) return;
+
+            try
+            {
+                oForm.ActiveItem = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR;
+            }
+            catch
+            {
+                oForm.ActiveItem = CONSTANTS.UID.HEADER.QUANTITY;
             }
         }
 

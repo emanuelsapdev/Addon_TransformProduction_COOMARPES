@@ -81,6 +81,19 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
             #endregion
 
+            // Al activar el formulario se asegura el campo Producto con CFL filtrado por lista de materiales.
+            if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_FORM_ACTIVATE)
+            {
+                try
+                {
+                    ManejarActivacionCampoProducto(pVal.FormUID);
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.MostrarError($"(OnItemEvent) {pVal.EventType}: {ex.Message}");
+                }
+            }
+
             #region Al activar el formulario setear el contexto
             if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_FORM_ACTIVATE)
             {
