@@ -64,6 +64,43 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
 
         /// <summary>
+        /// Valida las líneas de detalle antes de grabar el UDO (Pendiente o Crear): tiene que haber
+        /// al menos una línea con subproducto y todas las líneas con subproducto deben tener número
+        /// de lote. Las filas sin subproducto (p.ej. la fila vacía final de la matriz) se ignoran.
+        /// </summary>
+        public bool ValidarLineasDetalle(SAPbouiCOM.Form oForm)
+        {
+            var oMatrix = (SAPbouiCOM.Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
+            oMatrix.FlushToDataSource();
+
+            var oDbDataSource = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
+
+            int lineas = 0;
+            for (int i = 0; i < oDbDataSource.Size; i++)
+            {
+                string itemCode = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i) ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(itemCode)) continue;
+
+                lineas++;
+
+                string batchNum = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i) ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(batchNum))
+                {
+                    NotificationService.MostrarError(string.Format(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_BATCH, i + 1, itemCode));
+                    return false;
+                }
+            }
+
+            if (lineas == 0)
+            {
+                NotificationService.MostrarError(CONSTANTS.MESSAGES.CREATE_NO_DETAIL_LINES);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         public InventoryGenModel ObtenerInfoLineas(SAPbouiCOM.Form oForm)

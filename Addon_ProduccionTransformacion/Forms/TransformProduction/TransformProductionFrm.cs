@@ -284,6 +284,14 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 {
                     oForm = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
 
+                    // Líneas de detalle (vale para Pendiente y Crear): si no hay líneas o alguna
+                    // no tiene lote, no se graba el UDO.
+                    if (!ValidarLineasDetalle(oForm))
+                    {
+                        BubbleEvent = false;
+                        return;
+                    }
+
                     // VALIDAR QUE HAYA CARGADO EL TIPO DE CAMBIO DEL DIA -------------
                     // TRAER TIPO DE CAMBIO DEL DIA Y VALIDAR QUE NO SEA 0
                     Recordset oRec = ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);

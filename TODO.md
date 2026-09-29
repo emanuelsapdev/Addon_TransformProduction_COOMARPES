@@ -38,6 +38,8 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   cantidad, lotes y líneas de subproductos) y si falla no se graba el UDO. El registro se graba
   siempre Pendiente; en el after-add (`ManejarProduccionAgregada`) se crean IGN/IGO con los
   datos validados y solo si se crean pasa a Completado. El DocEntry se toma de `boi.ObjectKey`.
+  Además, con Pendiente o Crear, `ValidarLineasDetalle` bloquea el grabado si no hay líneas de
+  detalle o si alguna línea con subproducto no tiene número de lote.
   Pendiente de probar en SAP.
 - [ ] **TP-04 — Resultado del update del UDO ignorado.** Si IGN/IGE se confirman pero
   `ActualizarResultadoTransformacion` falla, el documento queda Pendiente con el stock ya
