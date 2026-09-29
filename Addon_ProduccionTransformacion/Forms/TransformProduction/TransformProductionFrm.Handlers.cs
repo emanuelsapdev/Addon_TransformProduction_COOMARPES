@@ -40,6 +40,12 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
             catch { }
 
+            try
+            {
+                oForm.Close();
+            }
+            catch { }
+
             ContextManager.Eliminar(oForm.TypeCount.ToString());
         }
 
