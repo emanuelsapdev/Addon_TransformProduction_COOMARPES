@@ -307,6 +307,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             SAPbouiCOM.Item oItemBtnConfirProd = oForm.Items.Item(CONSTANTS.UID.BUTTONS.CONFIRM_PROD);
             oItemBtnConfirProd.Enabled = false;
 
+            SAPbouiCOM.Item oItemBtnShowDocuments = oForm.Items.Item(CONSTANTS.UID.BUTTONS.SHOW_DOCUMENTS);
+            oItemBtnShowDocuments.Enabled = true;
+
             SAPbouiCOM.Item oItemBtnRevert = oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT);
             oItemBtnRevert.Enabled = false;
 
