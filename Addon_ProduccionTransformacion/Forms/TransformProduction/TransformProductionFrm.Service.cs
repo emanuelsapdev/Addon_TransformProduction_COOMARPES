@@ -4,6 +4,7 @@ using Addon_TransformProduction.Services;
 using Addon_TransformProduction.Tools;
 using SAPbobsCOM;
 using System;
+using System.Collections.Generic;
 
 namespace Addon_TransformProduction.Forms.TransformProduction
 {
@@ -254,6 +255,27 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             }
 
             AbrirDocumentosRelacionados(ctx);
+        }
+    
+
+        /// <summary>
+        /// Códigos de almacén que existen en SAP (OWHS) entre los indicados (Repository → Mapper).
+        /// </summary>
+        public HashSet<string> ObtenerAlmacenesExistentes(ICollection<string> whsCodes)
+        {
+            if (whsCodes == null || whsCodes.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerAlmacenesExistentes(oRecordSet, whsCodes);
+                return MapearCodigosAlmacen(oRecordSet);
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
         }
     }
 }

@@ -4,6 +4,8 @@ using Addon_TransformProduction.Services;
 using Addon_TransformProduction.Tools;
 using SAPbobsCOM;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Addon_TransformProduction.Forms.TransformProduction
@@ -75,6 +77,30 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                                 ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.EXIT_REV_DOC_ENTRY}""
                                 FROM ""{CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT}""
                                 WHERE ""{CONSTANTS.TABLES.FIELDS_HEAD_DB.DOCENTRY}"" = {docEntry};");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Almacenes (OWHS) que existen entre los códigos indicados.
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <param name="whsCodes">Códigos de almacén a buscar (no vacío).</param>
+        /// <returns>Recordset con la columna "WhsCode" de los almacenes encontrados.</returns>
+        public Recordset ObtenerAlmacenesExistentes(Recordset oRec, IEnumerable<string> whsCodes)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            string codigos = string.Join(", ", whsCodes.Select(c => $"'{SqlEscapeHelper.EscapeSql(c)}'"));
+
+            try
+            {
+                oRec.DoQuery($@"SELECT ""WhsCode"" FROM OWHS WHERE ""WhsCode"" IN ({codigos});");
                 return oRec;
             }
             catch

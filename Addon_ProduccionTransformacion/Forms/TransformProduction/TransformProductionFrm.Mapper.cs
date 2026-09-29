@@ -79,6 +79,23 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             };
         }
 
+        /// <summary>
+        /// Convierte el Recordset de almacenes (ver <see cref="ObtenerAlmacenesExistentes"/>) en
+        /// un conjunto de códigos. El Recordset se posiciona en EoF al terminar.
+        /// </summary>
+        public HashSet<string> MapearCodigosAlmacen(Recordset recordset)
+        {
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (recordset == null) return result;
+
+            while (!recordset.EoF)
+            {
+                result.Add(Convert.ToString(recordset.Fields.Item("WhsCode").Value));
+                recordset.MoveNext();
+            }
+            return result;
+        }
+
         private static int ParseInt(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return 0;

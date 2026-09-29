@@ -64,9 +64,11 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
 
         /// <summary>
-        /// Valida las líneas de detalle antes de grabar el UDO (Pendiente o Crear): tiene que haber
-        /// al menos una línea con subproducto y todas las líneas con subproducto deben tener número
-        /// de lote. Las filas sin subproducto (p.ej. la fila vacía final de la matriz) se ignoran.
+        /// Valida las líneas de detalle antes de grabar el UDO (Pendiente o Crear). Tiene que haber
+        /// al menos una línea con subproducto, y cada una debe tener: número de lote, cantidad
+        /// obtenida mayor que cero, almacén existente en SAP, precio nuevo mayor que cero, moneda
+        /// y fechas de vencimiento, fabricación e ingreso del lote. Las filas sin subproducto
+        /// (p.ej. la fila vacía final de la matriz) se ignoran. Corta en el primer error.
         /// </summary>
         public bool ValidarLineasDetalle(SAPbouiCOM.Form oForm)
         {
@@ -75,29 +77,80 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             var oDbDataSource = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
 
-            int lineas = 0;
+            // Línea (1-based) y subproducto por almacén, para informar el error de existencia.
+            var almacenesPorLinea = new List<Tuple<int, string, string>>();
+
             for (int i = 0; i < oDbDataSource.Size; i++)
             {
-                string itemCode = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i) ?? string.Empty).Trim();
+                string itemCode = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i);
                 if (string.IsNullOrWhiteSpace(itemCode)) continue;
 
-                lineas++;
+                int linea = i + 1;
 
-                string batchNum = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i) ?? string.Empty).Trim();
-                if (string.IsNullOrWhiteSpace(batchNum))
-                {
-                    NotificationService.MostrarError(string.Format(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_BATCH, i + 1, itemCode));
-                    return false;
-                }
+                if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_BATCH, linea, itemCode);
+
+                if (ParseDouble(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i)) <= 0)
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_INVALID_QTY, linea, itemCode);
+
+                string whsCode = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.WAREHOUSE, i);
+                if (string.IsNullOrWhiteSpace(whsCode))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_WHS, linea, itemCode);
+
+                if (ParseDecimal(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.PRICE, i)) <= 0)
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_INVALID_PRICE, linea, itemCode);
+
+                if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_CURRENCY, linea, itemCode);
+
+                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de vencimiento del lote");
+
+                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de fabricación del lote");
+
+                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i)))
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de ingreso del lote");
+
+                almacenesPorLinea.Add(Tuple.Create(linea, itemCode, whsCode));
             }
 
-            if (lineas == 0)
+            if (almacenesPorLinea.Count == 0)
             {
                 NotificationService.MostrarError(CONSTANTS.MESSAGES.CREATE_NO_DETAIL_LINES);
                 return false;
             }
 
+            var codigos = almacenesPorLinea.Select(l => l.Item3).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var existentes = ObtenerAlmacenesExistentes(codigos);
+
+            var sinAlmacen = almacenesPorLinea.FirstOrDefault(l => !existentes.Contains(l.Item3));
+            if (sinAlmacen != null)
+                return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WHS_NOT_FOUND, sinAlmacen.Item1, sinAlmacen.Item2, sinAlmacen.Item3);
+
             return true;
+        }
+
+        private static string LeerValorLinea(SAPbouiCOM.DBDataSource oDbDataSource, string campo, int fila)
+        {
+            return (oDbDataSource.GetValue(campo, fila) ?? string.Empty).Trim();
+        }
+
+        private static bool ErrorLinea(string formato, params object[] args)
+        {
+            NotificationService.MostrarError(string.Format(formato, args));
+            return false;
+        }
+
+        /// <summary>
+        /// El DBDataSource devuelve las fechas como "yyyyMMdd" (vacío si no hay fecha).
+        /// </summary>
+        private static bool EsFechaCargada(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+
+            return DateTime.TryParseExact(value, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
+                || DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.None, out _);
         }
 
         /// <summary>

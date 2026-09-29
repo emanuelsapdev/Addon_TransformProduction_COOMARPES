@@ -39,7 +39,9 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   siempre Pendiente; en el after-add (`ManejarProduccionAgregada`) se crean IGN/IGO con los
   datos validados y solo si se crean pasa a Completado. El DocEntry se toma de `boi.ObjectKey`.
   Además, con Pendiente o Crear, `ValidarLineasDetalle` bloquea el grabado si no hay líneas de
-  detalle o si alguna línea con subproducto no tiene número de lote.
+  detalle o si alguna línea con subproducto no tiene: número de lote, cantidad obtenida > 0,
+  almacén existente en OWHS, precio nuevo > 0, moneda y fechas de vencimiento, fabricación e
+  ingreso del lote.
   Pendiente de probar en SAP.
 - [ ] **TP-04 — Resultado del update del UDO ignorado.** Si IGN/IGE se confirman pero
   `ActualizarResultadoTransformacion` falla, el documento queda Pendiente con el stock ya
