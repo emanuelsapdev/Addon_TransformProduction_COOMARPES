@@ -45,9 +45,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             #region Al abrir el formulario se crea un contexto para almacenar la información de la producción.
             if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_FORM_LOAD)
             {
-                var oForm = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
-                var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-                ctx.FormTransfProd = oForm;
+                ManejarCargaFormulario(pVal.FormUID);
                 return;
             }
             #endregion

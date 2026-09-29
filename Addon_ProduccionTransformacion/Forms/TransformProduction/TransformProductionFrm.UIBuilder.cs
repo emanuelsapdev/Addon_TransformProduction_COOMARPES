@@ -94,5 +94,60 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         {
             oMatrix.Columns.Item(colUid).Editable = editable;
         }
+
+        /// <summary>
+        /// Asigna al campo "Producto" de la cabecera un ChooseFromList de artículos que muestra
+        /// solo los que tienen lista de materiales de producción (OITM."TreeType" = 'P').
+        /// Reemplaza al CFL automático que SAP genera por el UDF vinculado a Artículos
+        /// (U_ITPS_ItemCode), que no filtra. Idempotente: si el CFL ya existe en el
+        /// formulario lo reutiliza y solo re-aplica la condición.
+        /// </summary>
+        public void ConfigurarChooseFromListArticulo(SAPbouiCOM.Form oForm)
+        {
+            try
+            {
+                ChooseFromList oCfl = ObtenerOCrearChooseFromListArticulo(oForm);
+                AplicarFiltroListaMateriales(oCfl);
+
+                var oItemCode = (EditText)oForm.Items.Item(CONSTANTS.UID.HEADER.ITEM_CODE).Specific;
+                oItemCode.ChooseFromListUID = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE;
+                oItemCode.ChooseFromListAlias = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_ALIAS;
+            }
+            catch (Exception ex)
+            {
+                NotificationService.MostrarError(CONSTANTS.MESSAGES.CFL_ITEM_CONFIG_ERROR_PREFIX + ex.Message);
+            }
+        }
+
+        private static ChooseFromList ObtenerOCrearChooseFromListArticulo(SAPbouiCOM.Form oForm)
+        {
+            try
+            {
+                return oForm.ChooseFromLists.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE);
+            }
+            catch
+            {
+                // No existe todavía en este formulario: se crea abajo.
+            }
+
+            var oParams = (ChooseFromListCreationParams)ConnectionSDK.UIAPI.CreateObject(BoCreatableObjectType.cot_ChooseFromListCreationParams);
+            oParams.UniqueID = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE;
+            oParams.ObjectType = CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_OBJECT_TYPE;
+            oParams.MultiSelection = false;
+
+            return oForm.ChooseFromLists.Add(oParams);
+        }
+
+        private static void AplicarFiltroListaMateriales(ChooseFromList oCfl)
+        {
+            var oConditions = (Conditions)ConnectionSDK.UIAPI.CreateObject(BoCreatableObjectType.cot_Conditions);
+
+            Condition oCondition = oConditions.Add();
+            oCondition.Alias = CONSTANTS.UID.CHOOSE_FROM_LIST.TREE_TYPE_ALIAS;
+            oCondition.Operation = BoConditionOperation.co_EQUAL;
+            oCondition.CondVal = CONSTANTS.UID.CHOOSE_FROM_LIST.TREE_TYPE_PRODUCTION;
+
+            oCfl.SetConditions(oConditions);
+        }
     }
 }
