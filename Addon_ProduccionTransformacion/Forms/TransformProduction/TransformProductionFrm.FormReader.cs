@@ -231,7 +231,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             ctx.PrincipalQuantityConsumed = udo.Quantity;
             ctx.PrincipalStatus = udo.Status;
             ctx.InventoryGenEntriesDocEntry = udo.EntryDocEntry;
+            ctx.InventoryGenEntriesRevDocEntry = udo.EntryRevDocEntry;
             ctx.InventoryGenExitsDocEntry = udo.ExitDocEntry;
+            ctx.InventoryGenExitsRevDocEntry = udo.ExitRevDocEntry;
         }
 
         /// <summary>

@@ -427,14 +427,14 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             if (ctx.InventoryGenExitsDocEntry > 0)
                 ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsIssue, null, ctx.InventoryGenExitsDocEntry.ToString());
 
-            if (ctx.InventoryGenEntriesDocEntry > 0)
-                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsReceipt, null, ctx.InventoryGenEntriesDocEntry.ToString());
-
-            if (ctx.InventoryGenExitsDocEntry > 0)
-                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsIssue, null, ctx.InventoryGenExitsDocEntry.ToString());
+            if (ctx.InventoryGenExitsRevDocEntry > 0)
+                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsIssue, null, ctx.InventoryGenExitsRevDocEntry.ToString());
 
             if (ctx.InventoryGenEntriesDocEntry > 0)
                 ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsReceipt, null, ctx.InventoryGenEntriesDocEntry.ToString());
+
+            if (ctx.InventoryGenEntriesRevDocEntry > 0)
+                ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_GoodsReceipt, null, ctx.InventoryGenEntriesRevDocEntry.ToString());
         }
     }
 }
