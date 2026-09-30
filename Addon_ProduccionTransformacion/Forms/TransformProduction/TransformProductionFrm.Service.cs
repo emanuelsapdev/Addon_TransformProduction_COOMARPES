@@ -203,6 +203,34 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Abre el registro <paramref name="docEntry"/> del UDO (después de Agregar o Confirmar) y
+        /// le aplica el contexto, el campo Producto y la habilitación según su estado (p.ej.
+        /// Completado: Documentos y Revertir activos). No depende de et_FORM_DATA_LOAD, que
+        /// OpenForm no siempre dispara; si también se dispara, el resultado es el mismo.
+        /// </summary>
+        public void AbrirRegistro(string docEntry)
+        {
+            if (string.IsNullOrWhiteSpace(docEntry)) return;
+
+            ConnectionSDK.UIAPI.OpenForm(SAPbouiCOM.BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
+
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.ActiveForm;
+                if (oForm == null || oForm.TypeEx != FormType) return;
+
+                string formUid = oForm.UniqueID;
+                ManejarSincronizacionProducto(formUid);
+                ManejarRegistroCargado(formUid);
+            }
+            finally
+            {
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+        }
+
+        /// <summary>
         /// Registro recién cargado (et_FORM_DATA_LOAD con ActionSuccess): reinicia el contexto,
         /// lo reconstruye desde el registro cargado, limpia la etiqueta de lotes y aplica la
         /// habilitación de campos/botones según su estado.
