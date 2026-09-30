@@ -10,14 +10,19 @@ WITH MAT AS
         t2."InvntryUom",
         t2."LastPurPrc",
         t2."LastPurCur",
-        CURRENT_DATE   AS "MnfDate",
-        CURRENT_DATE   AS "InDate",
+        t2."ManBtchNum",
+        CASE WHEN t2."ManBtchNum" = 'Y' THEN CURRENT_DATE END AS "MnfDate",
+        CASE WHEN t2."ManBtchNum" = 'Y' THEN CURRENT_DATE END AS "InDate",
         CASE
+            WHEN t2."ManBtchNum" <> 'Y' THEN NULL
             WHEN LEFT(t1."Code", 1) = 'C' THEN ADD_YEARS(CURRENT_DATE, 2)
             WHEN LEFT(t1."Code", 1) = 'E' AND UPPER(t1."ItemName") LIKE 'FILET%' THEN ADD_YEARS(CURRENT_DATE, 2)
             ELSE ADD_YEARS(CURRENT_DATE, 1)
         END            AS "AutoExpDate",
-        t1."Code" || '-' || TO_VARCHAR(CURRENT_DATE, 'YYYYMMDD') || '-' AS "BatchPrefix"
+        CASE
+            WHEN t2."ManBtchNum" = 'Y'
+            THEN t1."Code" || '-' || TO_VARCHAR(CURRENT_DATE, 'YYYYMMDD') || '-'
+        END            AS "BatchPrefix"
     FROM OITT t0
     INNER JOIN ITT1 t1 ON t1."Father" = t0."Code"
     INNER JOIN OITM t2 ON t2."ItemCode" = t1."Code"
@@ -52,14 +57,18 @@ SELECT
     s."MnfDate",
     s."AutoExpDate",
     s."InDate",
-    s."BatchPrefix" ||
-    LPAD(
-        TO_VARCHAR(
-            s."LastSeq" +
-            ROW_NUMBER() OVER (PARTITION BY s."ItemCode" ORDER BY s."Warehouse", s."ItemName")
-        ),
-        3,
-        '0'
-    ) AS "AutoBatchNumber"
+    CASE
+        WHEN s."ManBtchNum" = 'Y' THEN
+            s."BatchPrefix" ||
+            LPAD(
+                TO_VARCHAR(
+                    s."LastSeq" +
+                    ROW_NUMBER() OVER (PARTITION BY s."ItemCode" ORDER BY s."Warehouse", s."ItemName")
+                ),
+                3,
+                '0'
+            )
+        ELSE ''
+    END AS "AutoBatchNumber"
 FROM SEQ s
 ORDER BY s."ItemCode", s."Warehouse";
