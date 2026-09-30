@@ -164,6 +164,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return;
             }
 
+            // En Pendiente la grilla y la cantidad son editables: se revalida el detalle
+            // (lotes, cantidades, almacén, precio, moneda, fechas y tolerancia ±5%).
+            if (!ValidarLineasDetalle(oForm)) { BubbleEvent = false; return; }
+
             if (!ValidarFormulario(oForm, ctx)) { BubbleEvent = false; return; }
 
             // Se pregunta recién con todo validado, antes de mover stock.
