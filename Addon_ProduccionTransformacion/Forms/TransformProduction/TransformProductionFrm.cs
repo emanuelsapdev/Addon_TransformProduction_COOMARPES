@@ -27,7 +27,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             BubbleEvent = true;
 
             // Buscar / Nuevo: re-sincronizar el campo espejo de "Producto" con el registro vacío.
-            if (!pVal.BeforeAction && (pVal.MenuUID == CONSTANTS.SAP_MENUS.FIND || pVal.MenuUID == CONSTANTS.SAP_MENUS.ADD))
+            if (!pVal.BeforeAction && (pVal.MenuUID == CONSTANTS.SAP_MENUS.FIND || pVal.MenuUID == CONSTANTS.SAP_MENUS.ADD || pVal.MenuUID == CONSTANTS.MENU_UID))
             {
                 try
                 {
@@ -36,8 +36,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     {
                         ManejarSincronizacionProducto(oActive.UniqueID);
 
-                        if (pVal.MenuUID == CONSTANTS.SAP_MENUS.ADD)
+                        if (pVal.MenuUID == CONSTANTS.SAP_MENUS.ADD || pVal.MenuUID == CONSTANTS.MENU_UID)
                             ManejarModoAgregar(oActive.UniqueID);
+
+
                     }
                 }
                 catch (Exception ex)
@@ -46,15 +48,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 }
             }
 
-            //try
-            //{
-            //    if (!pVal.BeforeAction && pVal.MenuUID == CONSTANTS.MENU_UID)
-            //        ManejarMenuRegistrado();
-            //}
-            //catch (Exception ex)
-            //{
-            //    NotificationService.MostrarError($"(OnMenuEvent) {pVal.MenuUID}: {ex.Message}");
-            //}
         }
 
         public void OnItemEvent(string FormUID, ref ItemEvent pVal, out bool BubbleEvent)
@@ -237,6 +230,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     }
 
                     ManejarConfirmarProduccion(oForm, out BubbleEvent);
+                    if (BubbleEvent == false) return;
+
                     string docEntry = ObtenerDocEntry(oForm);
                     
                     ManejarCierreFormulario(pVal.FormUID);

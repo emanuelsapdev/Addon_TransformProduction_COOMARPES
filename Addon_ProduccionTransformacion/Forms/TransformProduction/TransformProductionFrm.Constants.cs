@@ -6,7 +6,7 @@
         {
             public const string FORM_TYPE = "UDO_FT_ITPS_TRANSFPROD";
 
-            public const string MENU_UID = "ITPS_TRANSFPROD_MENU";
+            public const string MENU_UID = "47627";
 
             public const string PARENT_TOOLS_MENU_UID = "43520";
             public const string PARENT_INVENTORY_MENU_UID = "3072";
