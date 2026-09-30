@@ -221,7 +221,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     string docEntry = ObtenerDocEntry(oForm);
                     
                     ManejarCierreFormulario(pVal.FormUID);
-                    ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
+                    AbrirRegistro(docEntry);
                     
                 }
                 finally
@@ -415,7 +415,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     LimpiarEtiquetaLotes(oForm);
 
                     if (docEntry > 0)
-                        ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry.ToString());
+                        AbrirRegistro(docEntry.ToString());
                 }
                 catch (Exception ex)
                 {
