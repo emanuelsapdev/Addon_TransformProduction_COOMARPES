@@ -33,7 +33,12 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 {
                     var oActive = ConnectionSDK.UIAPI.Forms.ActiveForm;
                     if (oActive != null && oActive.TypeEx == FormType)
+                    {
                         ManejarSincronizacionProducto(oActive.UniqueID);
+
+                        if (pVal.MenuUID == CONSTANTS.SAP_MENUS.ADD)
+                            ManejarModoAgregar(oActive.UniqueID);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -235,7 +240,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     string docEntry = ObtenerDocEntry(oForm);
                     
                     ManejarCierreFormulario(pVal.FormUID);
-                    // ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
+                    ConnectionSDK.UIAPI.OpenForm(BoFormObjectEnum.fo_UserDefinedObject, CONSTANTS.UDO.OBJECT_CODE, docEntry);
                     
                 }
                 finally
@@ -475,33 +480,17 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 }
             }
 
-            if (boi.FormTypeEx == FormType && boi.EventType == BoEventTypes.et_FORM_DATA_LOAD && boi.BeforeAction)
+            // Registro cargado (navegar/buscar): recién con ActionSuccess el DBDataSource tiene los
+            // datos del registro nuevo; en el BeforeAction todavía tiene los del anterior.
+            if (boi.FormTypeEx == FormType && boi.EventType == BoEventTypes.et_FORM_DATA_LOAD && boi.ActionSuccess)
             {
-                SAPbouiCOM.Form oForm = null;
                 try
                 {
-                    oForm = ConnectionSDK.UIAPI.Forms.Item(boi.FormUID);
-
-                    var ctxLoad = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-
-                    ctxLoad.ResetearContexto();
-                    ReconstruirContextoDesdeForm(oForm, ctxLoad);
-                    LimpiarEtiquetaLotes(oForm);
-
-                    oForm.Freeze(true);
-                    AplicarHabilitacionPorEstado(oForm, ctxLoad.PrincipalStatus);
-                    oForm.Freeze(false);
-
+                    ManejarRegistroCargado(boi.FormUID);
                 }
-                finally
+                catch (Exception ex)
                 {
-                    oForm.Freeze(false);
-
-                    if (oForm != null)
-                    {
-                        MarshalGC.LiberarComObject(oForm);
-                        oForm = null;
-                    }
+                    NotificationService.MostrarError($"(OnFormDataEvent) {boi.EventType}: {ex.Message}");
                 }
             }
         }

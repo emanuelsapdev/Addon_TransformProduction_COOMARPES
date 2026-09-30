@@ -96,6 +96,56 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Columnas de la grilla que el usuario carga (las que B1 Studio deja editables).
+        /// </summary>
+        private static readonly string[] ColumnasEditablesDetalle =
+        {
+            CONSTANTS.UID.GRID_COLUMNS.QUANTITY_OBTAINED,
+            CONSTANTS.UID.GRID_COLUMNS.WAREHOUSE,
+            CONSTANTS.UID.GRID_COLUMNS.PRICE,
+            CONSTANTS.UID.GRID_COLUMNS.CURRENT,
+            CONSTANTS.UID.GRID_COLUMNS.BATCH_NUM,
+            CONSTANTS.UID.GRID_COLUMNS.EXTDATE_BATCH,
+            CONSTANTS.UID.GRID_COLUMNS.MNFDATE_BATCH,
+            CONSTANTS.UID.GRID_COLUMNS.INDATE_BATCH
+        };
+
+        /// <summary>
+        /// Habilita o bloquea la edición del documento: columnas cargables de la grilla y
+        /// Cantidad consumida; al bloquear, también el campo Producto. Al habilitar, Producto no
+        /// se toca: solo es editable en modo agregar (ver SincronizarCampoProducto).
+        /// </summary>
+        public static void EstablecerEdicionDocumento(SAPbouiCOM.Form oForm, bool editable)
+        {
+            // SAP no deja deshabilitar el item/columna que tiene el foco.
+            if (!editable) QuitarFocoDeEdicion(oForm);
+
+            var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
+            foreach (string colUid in ColumnasEditablesDetalle)
+                EstablecerColumnaEditable(oMatrix, colUid, editable);
+
+            oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY).Enabled = editable;
+
+            if (!editable && ExisteItem(oForm, CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR))
+                oForm.Items.Item(CONSTANTS.UID.CHOOSE_FROM_LIST.ITEM_CODE_MIRROR).Enabled = false;
+        }
+
+        /// <summary>
+        /// Lleva el foco a Comentarios para poder deshabilitar Producto, Cantidad y la grilla.
+        /// </summary>
+        private static void QuitarFocoDeEdicion(SAPbouiCOM.Form oForm)
+        {
+            try
+            {
+                oForm.ActiveItem = CONSTANTS.UID.HEADER.REMARK;
+            }
+            catch
+            {
+                // Si Comentarios no puede tomar el foco, se intenta igual deshabilitar.
+            }
+        }
+
+        /// <summary>
         /// Asegura el campo espejo de "Producto" (ver CONSTANTS.UID.CHOOSE_FROM_LIST): UserDataSource,
         /// CFL de artículos filtrado por lista de materiales, EditText en la misma posición que
         /// el campo original y el original oculto. Se llama en et_FORM_ACTIVATE (en et_FORM_LOAD
