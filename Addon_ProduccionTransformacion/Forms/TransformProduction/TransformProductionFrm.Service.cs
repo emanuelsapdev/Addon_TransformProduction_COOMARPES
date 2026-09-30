@@ -427,5 +427,26 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             return model;
         }
+    
+
+        /// <summary>
+        /// Códigos de artículo que se manejan por lotes entre los indicados (Repository → Mapper).
+        /// </summary>
+        public HashSet<string> ObtenerArticulosConLote(ICollection<string> itemCodes)
+        {
+            if (itemCodes == null || itemCodes.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerArticulosConLote(oRecordSet, itemCodes);
+                return MapearCodigosArticulo(oRecordSet);
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
+        }
     }
 }

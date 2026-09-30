@@ -226,6 +226,7 @@
                 public static string CREATE_QTY_OUT_OF_TOLERANCE = "La suma de la cantidad obtenida ({0}) no coincide con la cantidad consumida ({1}): se admite una diferencia de ±{2} (entre {3} y {4}).";
                 public static string CREATE_NO_DETAIL_LINES = "Debe cargar al menos una línea de detalle (subproducto).";
                 public static string CREATE_LINE_WITHOUT_BATCH = "La línea {0} (subproducto {1}) no tiene número de lote.";
+                public static string CREATE_LINE_BATCH_NOT_MANAGED = "La línea {0} (subproducto {1}) no se maneja por lotes: deje el número de lote vacío.";
                 public static string CREATE_LINE_INVALID_QTY = "La línea {0} (subproducto {1}): la cantidad obtenida debe ser mayor que cero.";
                 public static string CREATE_LINE_WITHOUT_WHS = "La línea {0} (subproducto {1}) no tiene almacén.";
                 public static string CREATE_LINE_WHS_NOT_FOUND = "La línea {0} (subproducto {1}): el almacén {2} no existe.";

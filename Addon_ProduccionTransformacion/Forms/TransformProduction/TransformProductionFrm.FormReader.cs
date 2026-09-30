@@ -145,9 +145,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.PRICE, i, row.LastPurPrc.ToString(CultureInfo.InvariantCulture));
                 oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i, !string.IsNullOrEmpty(row.LastPurCur) ? row.LastPurCur : "ARS");
                 oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i, row.AutoBatchNumber ?? string.Empty);
-                oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i, row.AutoExpDate.ToString("yyyyMMdd"));
-                oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i, row.MnfDate.ToString("yyyyMMdd"));
-                oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i, row.InDate.ToString("yyyyMMdd"));
+                // Sin fechas si el subproducto no se maneja por lotes.
+                oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i, row.AutoExpDate?.ToString("yyyyMMdd") ?? string.Empty);
+                oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i, row.MnfDate?.ToString("yyyyMMdd") ?? string.Empty);
+                oDbDataSource.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i, row.InDate?.ToString("yyyyMMdd") ?? string.Empty);
 
 
             }
