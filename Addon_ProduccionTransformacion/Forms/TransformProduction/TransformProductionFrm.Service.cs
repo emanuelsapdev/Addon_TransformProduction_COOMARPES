@@ -60,6 +60,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             string itemCode = Convert.ToString(oSeleccion.GetValue(CONSTANTS.UID.CHOOSE_FROM_LIST.ALIAS, 0))?.Trim();
             if (string.IsNullOrWhiteSpace(itemCode)) return;
 
+            // Mismo artículo: no recargar la grilla (pisaría cantidades/precios editados) ni
+            // descartar los lotes.
+            if (string.Equals(itemCode, LeerCodigoArticulo(oForm) ?? string.Empty, StringComparison.OrdinalIgnoreCase)) return;
+
             AplicarCambioProducto(oForm, itemCode);
         }
 
@@ -79,8 +83,41 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         private void AplicarCambioProducto(SAPbouiCOM.Form oForm, string itemCode)
         {
             EscribirCodigoArticulo(oForm, itemCode);
-            ManejarCodigoArticuloPerdidaFoco(oForm);
+
+            // Los lotes elegidos eran del artículo anterior: se descartan para que la salida no
+            // salga con ellos.
+            DescartarSeleccionLotes(oForm);
+
+            if (string.IsNullOrWhiteSpace(itemCode))
+                LimpiarGrillaMateriales(oForm);
+            else
+                ManejarCodigoArticuloPerdidaFoco(oForm);
+
             HabilitarBotonSeleccionLotes(oForm);
+        }
+
+        /// <summary>
+        /// Descarta la selección de lotes de la salida (contexto y etiqueta) y cierra el
+        /// formulario de lotes si quedó abierto.
+        /// </summary>
+        private void DescartarSeleccionLotes(SAPbouiCOM.Form oForm)
+        {
+            var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+            ctx.PrincipalItemCode = LeerCodigoArticulo(oForm) ?? string.Empty;
+            ctx.BatchHeadXml = string.Empty;
+            ctx.InventoryGenExitsData = new InventoryGenModel();
+
+            try
+            {
+                if (ctx.FormBatches != null) ctx.FormBatches.Close();
+            }
+            catch
+            {
+                // El formulario de lotes ya estaba cerrado.
+            }
+            ctx.FormBatches = null;
+
+            LimpiarEtiquetaLotes(oForm);
         }
 
         /// <summary>
