@@ -166,6 +166,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             if (!ValidarFormulario(oForm, ctx)) { BubbleEvent = false; return; }
 
+            // Se pregunta recién con todo validado, antes de mover stock.
+            int respuesta = ConnectionSDK.UIAPI.MessageBox(CONSTANTS.MESSAGES.CONFIRM_QUESTION, 2, "Confirmar", "Cancelar");
+            if (respuesta != 1) { BubbleEvent = false; return; } // 2 = "Cancelar"
+
             var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
             oMatrix.FlushToDataSource();
             ctx.InventoryGenEntriesData = ObtenerInfoLineas(oForm); // entrada desde líneas UDO
