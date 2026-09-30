@@ -238,11 +238,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             AplicarCabeceraUdoAContexto(udo, ctx);
 
-            // La salida (lotes del principal) no se persiste en el UDO: si el documento fue
-            // reabierto y no quedó selección en memoria, se reconstruye desde el Goods Issue
-            // original (OIGE) para poder revertirla.
-            if (ctx.InventoryGenExitsDocEntry > 0 && ctx.InventoryGenExitsData.Items.Count == 0)
-                ctx.InventoryGenExitsData = ObtenerExitDataDesdeDocumento(ctx.InventoryGenExitsDocEntry);
+            // La salida a revertir se reconstruye siempre desde el Goods Issue original (OIGE):
+            // lotes, cantidades y costo con el que salió, para reingresarla a ese mismo valor.
+            if (ctx.InventoryGenExitsDocEntry > 0)
+                ctx.InventoryGenExitsData = ObtenerSalidaParaReversion(ctx.InventoryGenExitsDocEntry);
 
             int respuesta = ConnectionSDK.UIAPI.MessageBox(
                 "¿Confirma la reversión de la producción/transformación? Se generarán los documentos de reversión de entrada y salida.",

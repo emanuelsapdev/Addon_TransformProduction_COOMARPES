@@ -56,10 +56,14 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   Usar `ActionSuccess`. Además el `finally` hace `oForm.Freeze(false)` antes de chequear null.
   *Hecho:* el bloque corre con `ActionSuccess` y se delega a `ManejarRegistroCargado` (Service);
   el `Freeze(false)` va dentro del chequeo de null. Pendiente de probar en SAP.
-- [ ] **TP-06 — Precio nuevo ignorado / fechas de lote vacías.** `CrearDocumentoInventario` no
+- [x] **TP-06 — Precio nuevo ignorado / fechas de lote vacías.** `CrearDocumentoInventario` no
   setea `Lines.UnitPrice` ni moneda: "Precio (nuevo)" no tiene efecto y el reingreso en la
   reversión se valúa al costo actual. La salida manda lotes con fechas `DateTime.MinValue`
   (no hace falta mandar fechas para lotes existentes).
+  *Hecho:* en las Entradas se manda `Lines.UnitPrice` y `Lines.Currency` ("Precio/Moneda
+  (nuevo)"); en las Salidas no se mandan precio ni fechas de lote. Las fechas vacías
+  (`MinValue`) no se envían. La reversión reconstruye siempre la salida desde el OIGE original
+  y reingresa al costo de esa salida (`IGE1."StockPrice"`). Pendiente de probar en SAP.
 
 ## 🟠 Altos
 

@@ -179,12 +179,13 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (qty <= 0) continue;
 
                 decimal price = ParseDecimal(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.PRICE, i));
+                string currency = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i) ?? string.Empty).Trim();
 
                 DateTime expDate = ParseDateOrToday(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i));
                 DateTime inDate = ParseDateOrToday(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i));
                 DateTime mnfDate = ParseDateOrToday(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i));
 
-                string itemKey = string.Concat(itemCode, "|", whs, "|", price.ToString(CultureInfo.InvariantCulture));
+                string itemKey = string.Concat(itemCode, "|", whs, "|", price.ToString(CultureInfo.InvariantCulture), "|", currency);
                 if (!itemsIndex.TryGetValue(itemKey, out var item))
                 {
                     item = new InventoryGenModel.Item
@@ -193,6 +194,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                         Warehouse = whs,
                         UnitMeasurement = uom,
                         Price = price,
+                        Currency = currency,
                         Quantity = 0d
                     };
 

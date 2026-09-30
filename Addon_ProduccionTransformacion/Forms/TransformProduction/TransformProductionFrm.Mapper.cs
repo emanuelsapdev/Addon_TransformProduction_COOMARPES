@@ -96,6 +96,24 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             return result;
         }
 
+        /// <summary>
+        /// Convierte el Recordset de costos (ver <see cref="ObtenerCostosLineasSalida"/>) en un
+        /// diccionario VisOrder → costo unitario. El Recordset se posiciona en EoF al terminar.
+        /// </summary>
+        public Dictionary<int, decimal> MapearCostosPorLinea(Recordset recordset)
+        {
+            var result = new Dictionary<int, decimal>();
+            if (recordset == null) return result;
+
+            while (!recordset.EoF)
+            {
+                int visOrder = Convert.ToInt32(recordset.Fields.Item("VisOrder").Value);
+                result[visOrder] = Convert.ToDecimal(recordset.Fields.Item("StockPrice").Value);
+                recordset.MoveNext();
+            }
+            return result;
+        }
+
         private static int ParseInt(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return 0;

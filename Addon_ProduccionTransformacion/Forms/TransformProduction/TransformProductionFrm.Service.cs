@@ -333,5 +333,39 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
             }
         }
+    
+
+        /// <summary>
+        /// Salida a revertir reconstruida desde el Goods Issue original (lotes y cantidades) con
+        /// el costo unitario con el que salió cada línea: la reversión la reingresa a ese mismo
+        /// valor y no al costo actual. Si una línea no tiene costo, se deja en 0 (SAP valúa al
+        /// costo actual).
+        /// </summary>
+        public InventoryGenModel ObtenerSalidaParaReversion(int exitDocEntry)
+        {
+            var model = ObtenerExitDataDesdeDocumento(exitDocEntry);
+            if (model.Items.Count == 0) return model;
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerCostosLineasSalida(oRecordSet, exitDocEntry);
+                var costos = MapearCostosPorLinea(oRecordSet);
+
+                // Las líneas del modelo están en el orden del documento (VisOrder).
+                for (int i = 0; i < model.Items.Count; i++)
+                {
+                    if (costos.TryGetValue(i, out decimal costo) && costo > 0)
+                        model.Items[i].Price = costo;
+                }
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
+
+            return model;
+        }
     }
 }

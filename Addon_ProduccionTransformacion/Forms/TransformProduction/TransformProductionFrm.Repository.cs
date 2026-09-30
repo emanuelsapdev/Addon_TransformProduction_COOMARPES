@@ -111,6 +111,28 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Costo unitario (moneda local, IGE1."StockPrice") de cada línea de un Goods Issue.
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <param name="exitDocEntry">DocEntry del Goods Issue (OIGE).</param>
+        /// <returns>Recordset con las columnas "VisOrder" y "StockPrice", ordenado por VisOrder.</returns>
+        public Recordset ObtenerCostosLineasSalida(Recordset oRec, int exitDocEntry)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            try
+            {
+                oRec.DoQuery($@"SELECT ""VisOrder"", ""StockPrice"" FROM IGE1 WHERE ""DocEntry"" = {exitDocEntry} ORDER BY ""VisOrder"";");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Crea la entrada de mercancía (Goods Receipt, artículos obtenidos de la transformación)
         /// a partir de <see cref="TransformProductionContext.InventoryGenEntriesData"/>.
         /// </summary>
@@ -127,7 +149,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             var oDoc = (Documents)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.oInventoryGenEntry);
             try
             {
-                return CrearDocumentoInventario(oDoc, model);
+                return CrearDocumentoInventario(oDoc, model, esEntrada: true);
             }
             finally
             {
@@ -152,7 +174,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             var oDoc = (Documents)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.oInventoryGenExit);
             try
             {
-                return CrearDocumentoInventario(oDoc, model);
+                return CrearDocumentoInventario(oDoc, model, esEntrada: false);
             }
             finally
             {
@@ -183,6 +205,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 {
                     oDoc.Lines.SetCurrentLine(i);
 
+                    // El costo con el que salió cada línea se completa aparte
+                    // (ver Service.ObtenerSalidaParaReversion).
                     var item = new InventoryGenModel.Item
                     {
                         ItemCode = oDoc.Lines.ItemCode,
@@ -223,7 +247,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// referencia todas las líneas a la primera línea de ese documento base para que quede
         /// relacionado en "Documentos Referenciados".
         /// </summary>
-        private int CrearDocumentoInventario(Documents oDoc, InventoryGenModel model)
+        private int CrearDocumentoInventario(Documents oDoc, InventoryGenModel model, bool esEntrada)
         {
             oDoc.DocDate = model.DocDate ?? DateTime.Today;
             oDoc.TaxDate = model.TaxDate ?? DateTime.Today;
@@ -238,6 +262,16 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oDoc.Lines.WarehouseCode = item.Warehouse;
                 oDoc.Lines.Quantity = item.Quantity;
 
+                // En la entrada el precio valúa el stock que ingresa ("Precio (nuevo)"); en la
+                // salida SAP valúa al costo, así que no se manda.
+                if (esEntrada && item.Price > 0)
+                {
+                    if (!string.IsNullOrWhiteSpace(item.Currency))
+                        oDoc.Lines.Currency = item.Currency;
+
+                    oDoc.Lines.UnitPrice = Convert.ToDouble(item.Price);
+                }
+
                 if (!string.IsNullOrWhiteSpace(item.AcctCode))
                     oDoc.Lines.AccountCode = item.AcctCode;
 
@@ -249,9 +283,15 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
                     oDoc.Lines.BatchNumbers.BatchNumber = batch.BatchNumber;
                     oDoc.Lines.BatchNumbers.Quantity = batch.Quantity;
-                    oDoc.Lines.BatchNumbers.ManufacturingDate = batch.MnfDate;
-                    oDoc.Lines.BatchNumbers.ExpiryDate = batch.ExpDate;
-                    oDoc.Lines.BatchNumbers.AddmisionDate = batch.InDate;
+
+                    // Las fechas solo aplican al lote que ingresa; en la salida el lote ya existe.
+                    // No se mandan fechas vacías (DateTime.MinValue).
+                    if (esEntrada)
+                    {
+                        if (batch.MnfDate != DateTime.MinValue) oDoc.Lines.BatchNumbers.ManufacturingDate = batch.MnfDate;
+                        if (batch.ExpDate != DateTime.MinValue) oDoc.Lines.BatchNumbers.ExpiryDate = batch.ExpDate;
+                        if (batch.InDate != DateTime.MinValue) oDoc.Lines.BatchNumbers.AddmisionDate = batch.InDate;
+                    }
                 }
             }
 
