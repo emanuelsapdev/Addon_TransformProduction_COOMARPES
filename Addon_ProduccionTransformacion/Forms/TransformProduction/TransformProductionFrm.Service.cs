@@ -143,6 +143,29 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Activación del formulario (et_FORM_ACTIVATE): copia al contexto el artículo y la
+        /// cantidad consumida de la cabecera, que usa el formulario de lotes. No toca el estado
+        /// ni la entrada: el estado lo fijan la carga del registro y los flujos de
+        /// Crear/Confirmar/Revertir, y la entrada se arma desde la grilla al momento de usarla.
+        /// </summary>
+        public void ManejarActivacionContexto(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+
+                var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+                ctx.PrincipalItemCode = LeerCodigoArticulo(oForm);
+                ctx.PrincipalQuantityConsumed = EsCantidadConsumidaValida(LeerCantidadConsumida(oForm), out double qty) ? qty : 0;
+            }
+            finally
+            {
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+        }
+
+        /// <summary>
         /// Registro recién cargado (et_FORM_DATA_LOAD con ActionSuccess): reinicia el contexto,
         /// lo reconstruye desde el registro cargado, limpia la etiqueta de lotes y aplica la
         /// habilitación de campos/botones según su estado.

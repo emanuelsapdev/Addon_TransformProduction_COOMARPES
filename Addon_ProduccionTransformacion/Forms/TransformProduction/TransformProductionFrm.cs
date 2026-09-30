@@ -92,34 +92,20 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 }
             }
 
-            #region Al activar el formulario setear el contexto
+            // Al activar el formulario se sincronizan artículo y cantidad en el contexto (los usa el
+            // formulario de lotes). El estado no se toca: lo fijan la carga del registro y los flujos
+            // de Crear/Confirmar/Revertir.
             if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_FORM_ACTIVATE)
             {
-                SAPbouiCOM.Form oForm = null;
                 try
                 {
-                    oForm = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
-                    var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-                    ctx.PrincipalItemCode = LeerCodigoArticulo(oForm);
-                    ctx.PrincipalQuantityConsumed = EsCantidadConsumidaValida(LeerCantidadConsumida(oForm), out double qty) ? qty : 0;
-                    ctx.PrincipalStatus = LeereEstadoCabecera(oForm);
-                    ctx.InventoryGenEntriesData = ObtenerInfoLineas(oForm);
-
-                    //string ctxJson = JsonSerializer.Serialize(ctx, new JsonSerializerOptions { WriteIndented = true });
-                    //NotificationService.MostrarAlerta(ctxJson);
-
+                    ManejarActivacionContexto(pVal.FormUID);
                 }
-                catch { }
-                finally
+                catch (Exception ex)
                 {
-                    if (oForm != null)
-                    {
-                        MarshalGC.LiberarComObject(oForm);
-                        oForm = null;
-                    }
+                    NotificationService.MostrarError($"(OnItemEvent) {pVal.EventType}: {ex.Message}");
                 }
-            } 
-            #endregion
+            }
 
             // Abrir formulario de selección de lotes al clickear el botón de cabecera.
             if (pVal.BeforeAction && pVal.EventType == BoEventTypes.et_ITEM_PRESSED
@@ -323,20 +309,18 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                             BubbleEvent = false;
                             return;
                         }
-                        ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.COMPLETED;
                     }
-                    else if (respuesta == 1) // Crear - Estado Pendiente
-                    {
-                        ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.PENDING;
-                    }
-                    else
+                    else if (respuesta != 1) // Cancelar
                     {
                         BubbleEvent = false;
                         return;
                     }
 
-                    // El registro se graba siempre Pendiente: pasa a Completado recién cuando se
-                    // crean la Entrada/Salida en el after-add (ManejarProduccionAgregada).
+                    // La elección queda en ctx.CompletarAlAgregar (Crear) y el registro se graba
+                    // siempre Pendiente, escrito en el combo en este mismo click: pasa a Completado
+                    // recién cuando se crean la Entrada/Salida en el after-add
+                    // (ManejarProduccionAgregada). Así et_FORM_ACTIVATE no puede cambiar el resultado.
+                    ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.PENDING;
                     EscribirEstadoCabecera(oForm, CONSTANTS.STAGING_STATUS.PENDING);
                 }
                 finally
