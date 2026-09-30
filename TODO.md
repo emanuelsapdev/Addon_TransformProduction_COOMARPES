@@ -75,9 +75,13 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   escribe Pendiente en el mismo click; `ctx.PrincipalStatus` también queda Pendiente hasta que
   se crean IGN/IGO. `et_FORM_ACTIVATE` delega a `ManejarActivacionContexto` y solo sincroniza
   artículo y cantidad (ya no pisa el estado ni la entrada). Pendiente de probar en SAP.
-- [ ] **TP-08 — Cambio de artículo con lotes ya elegidos.** `ManejarCodigoArticuloPerdidaFoco` no
+- [x] **TP-08 — Cambio de artículo con lotes ya elegidos.** `ManejarCodigoArticuloPerdidaFoco` no
   limpia `BatchHeadXml` / `InventoryGenExitsData`: la salida sale con lotes del artículo
   anterior. Además cada pérdida de foco recarga la grilla y pisa cantidades/precios editados.
+  *Hecho:* `AplicarCambioProducto` descarta la selección de lotes (`DescartarSeleccionLotes`:
+  contexto, etiqueta y form de lotes abierto) al cambiar de artículo; si se borra el artículo
+  se limpia la grilla. El CFL ya no recarga la grilla si se elige el mismo artículo (la
+  pérdida de foco ya comparaba). Pendiente de probar en SAP.
 - [ ] **TP-09 — Confirmar continúa tras un fallo.** Después de `ManejarConfirmarProduccion` se
   cierra el contexto y se reabre el documento aunque `BubbleEvent` haya quedado en false.
 - [ ] **TP-10 — Revertir deja el form en modo Update.** `EscribirEstadoCabecera` tras revertir deja
