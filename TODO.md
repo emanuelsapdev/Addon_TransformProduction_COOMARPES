@@ -63,7 +63,7 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   *Hecho:* en las Entradas se manda `Lines.UnitPrice` y `Lines.Currency` ("Precio/Moneda
   (nuevo)"); en las Salidas no se mandan precio ni fechas de lote. Las fechas vacías
   (`MinValue`) no se envían. La reversión reconstruye siempre la salida desde el OIGE original
-  y reingresa al `StockPrice` de esa salida. Pendiente de probar en SAP.
+  y reingresa al costo de esa salida (`IGE1."StockPrice"`). Pendiente de probar en SAP.
 
 ## 🟠 Altos
 

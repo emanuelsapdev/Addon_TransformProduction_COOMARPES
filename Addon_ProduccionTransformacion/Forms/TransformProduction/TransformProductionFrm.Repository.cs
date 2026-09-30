@@ -111,6 +111,28 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Costo unitario (moneda local, IGE1."StockPrice") de cada línea de un Goods Issue.
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <param name="exitDocEntry">DocEntry del Goods Issue (OIGE).</param>
+        /// <returns>Recordset con las columnas "VisOrder" y "StockPrice", ordenado por VisOrder.</returns>
+        public Recordset ObtenerCostosLineasSalida(Recordset oRec, int exitDocEntry)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            try
+            {
+                oRec.DoQuery($@"SELECT ""VisOrder"", ""StockPrice"" FROM IGE1 WHERE ""DocEntry"" = {exitDocEntry} ORDER BY ""VisOrder"";");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Crea la entrada de mercancía (Goods Receipt, artículos obtenidos de la transformación)
         /// a partir de <see cref="TransformProductionContext.InventoryGenEntriesData"/>.
         /// </summary>
@@ -183,14 +205,13 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 {
                     oDoc.Lines.SetCurrentLine(i);
 
-                    // Costo unitario (moneda local) con el que salió la mercadería: la reversión
-                    // la reingresa al mismo valor y no al costo actual.
+                    // El costo con el que salió cada línea se completa aparte
+                    // (ver Service.ObtenerSalidaParaReversion).
                     var item = new InventoryGenModel.Item
                     {
                         ItemCode = oDoc.Lines.ItemCode,
                         Warehouse = oDoc.Lines.WarehouseCode,
-                        Quantity = oDoc.Lines.Quantity,
-                        Price = Convert.ToDecimal(oDoc.Lines.StockPrice)
+                        Quantity = oDoc.Lines.Quantity
                     };
 
                     for (int b = 0; b < oDoc.Lines.BatchNumbers.Count; b++)

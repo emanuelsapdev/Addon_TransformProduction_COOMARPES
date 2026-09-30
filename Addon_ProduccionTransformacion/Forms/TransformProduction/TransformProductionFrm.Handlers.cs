@@ -241,7 +241,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             // La salida a revertir se reconstruye siempre desde el Goods Issue original (OIGE):
             // lotes, cantidades y costo con el que salió, para reingresarla a ese mismo valor.
             if (ctx.InventoryGenExitsDocEntry > 0)
-                ctx.InventoryGenExitsData = ObtenerExitDataDesdeDocumento(ctx.InventoryGenExitsDocEntry);
+                ctx.InventoryGenExitsData = ObtenerSalidaParaReversion(ctx.InventoryGenExitsDocEntry);
 
             int respuesta = ConnectionSDK.UIAPI.MessageBox(
                 "¿Confirma la reversión de la producción/transformación? Se generarán los documentos de reversión de entrada y salida.",
