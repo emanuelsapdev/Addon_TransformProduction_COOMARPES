@@ -68,7 +68,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// al menos una línea con subproducto, y cada una debe tener: número de lote, cantidad
         /// obtenida mayor que cero, almacén existente en SAP, precio nuevo mayor que cero, moneda
         /// y fechas de vencimiento, fabricación e ingreso del lote. Las filas sin subproducto
-        /// (p.ej. la fila vacía final de la matriz) se ignoran. Corta en el primer error.
+        /// (p.ej. la fila vacía final de la matriz) se ignoran. Además, la suma de la cantidad
+        /// obtenida debe coincidir con la Cantidad Consumida de la cabecera con una tolerancia de
+        /// ±5% (<see cref="CONSTANTS.TOLERANCIA_CANTIDAD_OBTENIDA"/>). Corta en el primer error.
         /// </summary>
         public bool ValidarLineasDetalle(SAPbouiCOM.Form oForm)
         {
@@ -79,6 +81,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             // Línea (1-based) y subproducto por almacén, para informar el error de existencia.
             var almacenesPorLinea = new List<Tuple<int, string, string>>();
+            double sumaObtenida = 0;
 
             for (int i = 0; i < oDbDataSource.Size; i++)
             {
@@ -90,8 +93,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i)))
                     return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_BATCH, linea, itemCode);
 
-                if (ParseDouble(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i)) <= 0)
+                double cantidadObtenida = ParseDoubleDataSource(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i));
+                if (cantidadObtenida <= 0)
                     return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_INVALID_QTY, linea, itemCode);
+                sumaObtenida += cantidadObtenida;
 
                 string whsCode = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.WAREHOUSE, i);
                 if (string.IsNullOrWhiteSpace(whsCode))
@@ -121,6 +126,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return false;
             }
 
+            if (!ValidarToleranciaCantidadObtenida(oForm, sumaObtenida)) return false;
+
             var codigos = almacenesPorLinea.Select(l => l.Item3).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             var existentes = ObtenerAlmacenesExistentes(codigos);
 
@@ -129,6 +136,46 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WHS_NOT_FOUND, sinAlmacen.Item1, sinAlmacen.Item2, sinAlmacen.Item3);
 
             return true;
+        }
+
+        /// <summary>
+        /// La suma de la cantidad obtenida debe estar dentro de ±5% de la Cantidad Consumida
+        /// (ambos extremos incluidos).
+        /// </summary>
+        private bool ValidarToleranciaCantidadObtenida(SAPbouiCOM.Form oForm, double sumaObtenida)
+        {
+            var oDbCabecera = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
+            double consumida = ParseDoubleDataSource(oDbCabecera.GetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY, oDbCabecera.Offset));
+            if (consumida <= 0)
+            {
+                NotificationService.MostrarError(CONSTANTS.MESSAGES.CREATE_INVALID_CONSUMED_QTY);
+                return false;
+            }
+
+            double tolerancia = consumida * CONSTANTS.TOLERANCIA_CANTIDAD_OBTENIDA;
+            double minimo = consumida - tolerancia;
+            double maximo = consumida + tolerancia;
+
+            // Pequeño margen para errores de redondeo de double en los extremos.
+            const double epsilon = 1e-9;
+            if (sumaObtenida >= minimo - epsilon && sumaObtenida <= maximo + epsilon) return true;
+
+            NotificationService.MostrarError(string.Format(CONSTANTS.MESSAGES.CREATE_QTY_OUT_OF_TOLERANCE,
+                sumaObtenida.ToString("N2"), consumida.ToString("N2"),
+                CONSTANTS.TOLERANCIA_CANTIDAD_OBTENIDA.ToString("P0"),
+                minimo.ToString("N2"), maximo.ToString("N2")));
+            return false;
+        }
+
+        /// <summary>
+        /// Número leído de un DBDataSource: SAP lo devuelve siempre con punto decimal y sin
+        /// separador de miles, así que se parsea con cultura invariante (con la cultura local
+        /// es-AR "10.5" se leería como 105).
+        /// </summary>
+        private static double ParseDoubleDataSource(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return 0d;
+            return double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0d;
         }
 
         private static string LeerValorLinea(SAPbouiCOM.DBDataSource oDbDataSource, string campo, int fila)
