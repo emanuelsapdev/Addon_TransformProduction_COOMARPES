@@ -67,10 +67,14 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
 
 ## 🟠 Altos
 
-- [ ] **TP-07 — `et_FORM_ACTIVATE` pisa el estado.** Reescribe `ctx.PrincipalStatus` con el combo
+- [x] **TP-07 — `et_FORM_ACTIVATE` pisa el estado.** Reescribe `ctx.PrincipalStatus` con el combo
   (Pendiente por defecto); si el form se activa entre el MessageBox de Crear y el grabado,
   "Crear" termina como Pendiente. *Propuesta:* escribir la elección en el combo
   (`EscribirEstadoCabecera`) en el mismo click, así queda persistida y es consistente.
+  *Hecho:* (base en TP-03) la elección "Crear" vive en `ctx.CompletarAlAgregar` y el combo se
+  escribe Pendiente en el mismo click; `ctx.PrincipalStatus` también queda Pendiente hasta que
+  se crean IGN/IGO. `et_FORM_ACTIVATE` delega a `ManejarActivacionContexto` y solo sincroniza
+  artículo y cantidad (ya no pisa el estado ni la entrada). Pendiente de probar en SAP.
 - [ ] **TP-08 — Cambio de artículo con lotes ya elegidos.** `ManejarCodigoArticuloPerdidaFoco` no
   limpia `BatchHeadXml` / `InventoryGenExitsData`: la salida sale con lotes del artículo
   anterior. Además cada pérdida de foco recarga la grilla y pisa cantidades/precios editados.

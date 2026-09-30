@@ -227,6 +227,7 @@
                 public static string CREATE_NO_ENTRY_LINES = "Debe haber al menos una línea de subproducto con lote y cantidad obtenida mayor que cero.";
                 public static string CREATE_DOCS_FAILED_PENDING = "El documento se grabó en estado " + STAGING_STATUS.PENDING + " porque no se pudieron crear la Entrada/Salida de mercancía. Corrija el problema y use Confirmar producción.";
                 public static string COMPLETE_UDO_UPDATE_ERROR = "No se pudo actualizar el documento a " + STAGING_STATUS.COMPLETED + ": se deshicieron la Entrada/Salida de mercancía.";
+                public static string CONFIRM_QUESTION = "¿Confirma la producción/transformación? Se generarán la Entrada y la Salida de mercancía y el documento pasará a " + STAGING_STATUS.COMPLETED + ".";
                 public static string CONFIRM_NOT_SAVED = "Guarde el documento antes de confirmarlo.";
                 public static string CONFIRM_ALREADY_DONE = "El documento ya tiene Entrada/Salida de mercancía: no se puede confirmar de nuevo.";
                 public static string CONFIRM_NOT_PENDING = "Solo se puede confirmar un documento en estado " + STAGING_STATUS.PENDING + ". Estado actual: ";
