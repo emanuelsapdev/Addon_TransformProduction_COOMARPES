@@ -21,6 +21,9 @@ namespace Addon_TransformProduction.Models
             public string UnitMeasurement { get; set; }
             public double Quantity { get; set; }
             public decimal Price { get; set; }
+
+            /// <summary>Moneda de <see cref="Price"/>; vacío = moneda local.</summary>
+            public string Currency { get; set; }
             public string AcctCode { get; set; }
 
             public List<Batch> Batches { get; set; } = new List<Batch>();
