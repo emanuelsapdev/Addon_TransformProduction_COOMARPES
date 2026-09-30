@@ -29,9 +29,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     UoM = fields.Item("InvntryUom").Value,
                     LastPurPrc = Convert.ToDecimal(fields.Item("LastPurPrc").Value),
                     LastPurCur = fields.Item("LastPurCur").Value,
-                    MnfDate = Convert.ToDateTime(fields.Item("MnfDate").Value),
-                    AutoExpDate = Convert.ToDateTime(fields.Item("AutoExpDate").Value),
-                    InDate = Convert.ToDateTime(fields.Item("InDate").Value),
+                    MnfDate = FechaOpcional(fields.Item("MnfDate").Value),
+                    AutoExpDate = FechaOpcional(fields.Item("AutoExpDate").Value),
+                    InDate = FechaOpcional(fields.Item("InDate").Value),
                     AutoBatchNumber = fields.Item("AutoBatchNumber").Value
                 });
                 recordset.MoveNext();
@@ -109,6 +109,34 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             {
                 int visOrder = Convert.ToInt32(recordset.Fields.Item("VisOrder").Value);
                 result[visOrder] = Convert.ToDecimal(recordset.Fields.Item("StockPrice").Value);
+                recordset.MoveNext();
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Fecha de un campo del Recordset, o null si viene vacía: la DI API devuelve 30/12/1899
+        /// cuando la vista trae NULL (subproducto que no se maneja por lotes).
+        /// </summary>
+        private static DateTime? FechaOpcional(object value)
+        {
+            if (value == null || value is DBNull) return null;
+            DateTime fecha = Convert.ToDateTime(value);
+            return fecha.Year <= 1900 ? (DateTime?)null : fecha;
+        }
+
+        /// <summary>
+        /// Convierte el Recordset de artículos (ver <see cref="ObtenerArticulosConLote"/>) en un
+        /// conjunto de códigos. El Recordset se posiciona en EoF al terminar.
+        /// </summary>
+        public HashSet<string> MapearCodigosArticulo(Recordset recordset)
+        {
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (recordset == null) return result;
+
+            while (!recordset.EoF)
+            {
+                result.Add(Convert.ToString(recordset.Fields.Item("ItemCode").Value));
                 recordset.MoveNext();
             }
             return result;

@@ -65,9 +65,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
         /// <summary>
         /// Valida las líneas de detalle antes de grabar el UDO (Pendiente o Crear). Tiene que haber
-        /// al menos una línea con subproducto, y cada una debe tener: número de lote, cantidad
-        /// obtenida mayor que cero, almacén existente en SAP, precio nuevo mayor que cero, moneda
-        /// y fechas de vencimiento, fabricación e ingreso del lote. Las filas sin subproducto
+        /// al menos una línea con subproducto, y cada una debe tener: cantidad obtenida mayor que
+        /// cero, almacén existente en SAP, precio nuevo mayor que cero y moneda. Si el subproducto
+        /// se maneja por lotes, además número de lote y fechas de vencimiento, fabricación e
+        /// ingreso; si no, el número de lote tiene que quedar vacío. Las filas sin subproducto
         /// (p.ej. la fila vacía final de la matriz) se ignoran. Además, la suma de la cantidad
         /// obtenida debe coincidir con la Cantidad Consumida de la cabecera con una tolerancia de
         /// ±5% (<see cref="CONSTANTS.TOLERANCIA_CANTIDAD_OBTENIDA"/>). Corta en el primer error.
@@ -83,15 +84,30 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             var almacenesPorLinea = new List<Tuple<int, string, string>>();
             double sumaObtenida = 0;
 
+            // Subproductos que se manejan por lotes (una sola consulta a OITM): solo a esos se les
+            // exige número de lote y fechas; a los demás el lote tiene que quedar vacío.
+            var subproductos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < oDbDataSource.Size; i++)
+            {
+                string codigo = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i);
+                if (!string.IsNullOrWhiteSpace(codigo)) subproductos.Add(codigo);
+            }
+            var conLote = ObtenerArticulosConLote(subproductos);
+
             for (int i = 0; i < oDbDataSource.Size; i++)
             {
                 string itemCode = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i);
                 if (string.IsNullOrWhiteSpace(itemCode)) continue;
 
                 int linea = i + 1;
+                bool manejaLote = conLote.Contains(itemCode);
+                bool tieneLote = !string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i));
 
-                if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.BATCH_NUM, i)))
+                if (manejaLote && !tieneLote)
                     return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_BATCH, linea, itemCode);
+
+                if (!manejaLote && tieneLote)
+                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_BATCH_NOT_MANAGED, linea, itemCode);
 
                 double cantidadObtenida = ParseDoubleDataSource(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i));
                 if (cantidadObtenida <= 0)
@@ -108,14 +124,18 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i)))
                     return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_CURRENCY, linea, itemCode);
 
-                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i)))
-                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de vencimiento del lote");
+                // Las fechas son del lote: solo se exigen si el subproducto se maneja por lotes.
+                if (manejaLote)
+                {
+                    if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.EXTDATE_BATCH, i)))
+                        return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de vencimiento del lote");
 
-                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i)))
-                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de fabricación del lote");
+                    if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.MNFDATE_BATCH, i)))
+                        return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de fabricación del lote");
 
-                if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i)))
-                    return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de ingreso del lote");
+                    if (!EsFechaCargada(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.INDATE_BATCH, i)))
+                        return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_DATE, linea, itemCode, "fecha de ingreso del lote");
+                }
 
                 almacenesPorLinea.Add(Tuple.Create(linea, itemCode, whsCode));
             }
@@ -219,7 +239,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 string whs = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.WAREHOUSE, i) ?? string.Empty).Trim();
                 string uom = (oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.UNIT_MEASUREMENT, i) ?? string.Empty).Trim();
 
-                if (string.IsNullOrWhiteSpace(itemCode) || string.IsNullOrWhiteSpace(batchNum))
+                // Las líneas sin lote (subproducto no manejado por lotes) entran a la Entrada sin
+                // detalle de lotes.
+                if (string.IsNullOrWhiteSpace(itemCode))
                     continue;
 
                 double qty = ParseDouble(oDbDataSource.GetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i));
@@ -249,23 +271,26 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     invGen.Items.Add(item);
                 }
 
-                var existingBatch = item.Batches.FirstOrDefault(b => string.Equals(b.BatchNumber, batchNum, StringComparison.OrdinalIgnoreCase));
-                if (existingBatch != null)
+                if (!string.IsNullOrWhiteSpace(batchNum))
                 {
-                    existingBatch.Quantity += qty;
-                }
-                else
-                {
-                    var batch = new InventoryGenModel.Item.Batch
+                    var existingBatch = item.Batches.FirstOrDefault(b => string.Equals(b.BatchNumber, batchNum, StringComparison.OrdinalIgnoreCase));
+                    if (existingBatch != null)
                     {
-                        BatchNumber = batchNum,
-                        Quantity = qty,
-                        ExpDate = expDate,
-                        InDate = inDate,
-                        MnfDate = mnfDate
-                    };
+                        existingBatch.Quantity += qty;
+                    }
+                    else
+                    {
+                        var batch = new InventoryGenModel.Item.Batch
+                        {
+                            BatchNumber = batchNum,
+                            Quantity = qty,
+                            ExpDate = expDate,
+                            InDate = inDate,
+                            MnfDate = mnfDate
+                        };
 
-                    item.AddBatch(batch);
+                        item.AddBatch(batch);
+                    }
                 }
 
                 item.Quantity += qty;

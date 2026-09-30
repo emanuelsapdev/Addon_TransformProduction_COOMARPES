@@ -133,6 +133,30 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Artículos (OITM) que se manejan por lotes ("ManBtchNum" = 'Y') entre los códigos indicados.
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <param name="itemCodes">Códigos de artículo a buscar (no vacío).</param>
+        /// <returns>Recordset con la columna "ItemCode" de los artículos manejados por lote.</returns>
+        public Recordset ObtenerArticulosConLote(Recordset oRec, IEnumerable<string> itemCodes)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            string codigos = string.Join(", ", itemCodes.Select(c => $"'{SqlEscapeHelper.EscapeSql(c)}'"));
+
+            try
+            {
+                oRec.DoQuery($@"SELECT ""ItemCode"" FROM OITM WHERE ""ItemCode"" IN ({codigos}) AND ""ManBtchNum"" = 'Y';");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Crea la entrada de mercancía (Goods Receipt, artículos obtenidos de la transformación)
         /// a partir de <see cref="TransformProductionContext.InventoryGenEntriesData"/>.
         /// </summary>

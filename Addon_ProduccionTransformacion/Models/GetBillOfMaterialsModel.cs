@@ -15,9 +15,10 @@ namespace Addon_TransformProduction.Models
         public string UoM { get; set; }
         public decimal LastPurPrc { get; set; }
         public string LastPurCur { get; set; }
-        public DateTime MnfDate { get; set; }
-        public DateTime AutoExpDate { get; set; }
-        public DateTime InDate { get; set; }
+        /// <summary>Fechas del lote a crear; null si el subproducto no se maneja por lotes.</summary>
+        public DateTime? MnfDate { get; set; }
+        public DateTime? AutoExpDate { get; set; }
+        public DateTime? InDate { get; set; }
         public string AutoBatchNumber { get; set; }
     }
 }
