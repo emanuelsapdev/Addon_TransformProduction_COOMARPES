@@ -1,5 +1,6 @@
 using Addon_TransformProduction.Models;
 using Addon_TransformProduction.Services;
+using Addon_TransformProduction.Tools;
 using SAPbouiCOM;
 using System;
 using System.Collections.Generic;
@@ -24,7 +25,7 @@ namespace Addon_TransformProduction.Forms.WindowBatches
                 double qtyAssigned = Convert.ToDouble(oDataTable.GetValue(CONSTANTS.DATATABLE.COLUMNS.QTY_ASSIGNED, i));
                 
 
-                if (qtyAssigned > qty)
+                if (NumberHelper.EsMayor(qtyAssigned, qty))
                 {
                     NotificationService.MostrarAlerta($"La cantidad asignada de la línea {i + 1} no puede superar la cantidad disponible.");
                     return false;
@@ -34,13 +35,14 @@ namespace Addon_TransformProduction.Forms.WindowBatches
                 if (check) totalQtyAsignada += qtyAssigned;
             }
 
-            if (totalQtyAsignada > ctx.PrincipalQuantityConsumed)
+            // Comparaciones con margen: la suma de decimales en double no es exacta (TP-15).
+            if (NumberHelper.EsMayor(totalQtyAsignada, ctx.PrincipalQuantityConsumed))
             {
                 NotificationService.MostrarAlerta("La cantidad total asignada no puede superar la Cantidad Consumida.");
                 return false;
             }
 
-            if (totalQtyAsignada != ctx.PrincipalQuantityConsumed)
+            if (!NumberHelper.SonIguales(totalQtyAsignada, ctx.PrincipalQuantityConsumed))
             {
                 NotificationService.MostrarAlerta("La cantidad elegida no coincide con la Cantidad Consumida.");
                 return false;

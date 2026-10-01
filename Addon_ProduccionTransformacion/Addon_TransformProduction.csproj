@@ -307,6 +307,7 @@
     <Compile Include="Services\NotificationService.cs" />
     <Compile Include="Tools\IUDataTest.cs" />
     <Compile Include="Tools\MarshalGC.cs" />
+    <Compile Include="Tools\NumberHelper.cs" />
     <Compile Include="Tools\SqlEscapeHelper.cs" />
   </ItemGroup>
   <ItemGroup>

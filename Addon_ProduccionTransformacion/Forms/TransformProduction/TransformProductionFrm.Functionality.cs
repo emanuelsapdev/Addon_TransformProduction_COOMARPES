@@ -51,7 +51,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return false;
             }
 
-            if(ctx.InventoryGenExitsData.Items.SelectMany(item => item.Batches.Select(batch => batch.Quantity)).Sum() != cantidad)
+            // Con margen: 1,1 + 2,2 no da exactamente 3,3 en double (TP-15).
+            double totalLotes = ctx.InventoryGenExitsData.Items.SelectMany(item => item.Batches.Select(batch => batch.Quantity)).Sum();
+            if (!Tools.NumberHelper.SonIguales(totalLotes, cantidad))
             {
                 NotificationService.MostrarError("La cantidad total asignada no coincide con la Cantidad Consumida.");
                 return false;
