@@ -526,5 +526,70 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
             }
         }
+    
+
+        /// <summary>
+        /// Códigos de moneda que existen en SAP (OCRN) entre los indicados (Repository → Mapper).
+        /// </summary>
+        public HashSet<string> ObtenerMonedasExistentes(ICollection<string> currencyCodes)
+        {
+            if (currencyCodes == null || currencyCodes.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerMonedasExistentes(oRecordSet, currencyCodes);
+                return MapearColumnaTexto(oRecordSet, "CurrCode");
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
+        }
+
+        /// <summary>
+        /// Moneda local (OADM."MainCurncy") y moneda de sistema (OADM."SysCurrncy").
+        /// </summary>
+        public void ObtenerMonedasSociedad(out string monedaLocal, out string monedaSistema)
+        {
+            monedaLocal = string.Empty;
+            monedaSistema = string.Empty;
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerMonedasSociedad(oRecordSet);
+                if (oRecordSet.EoF) return;
+
+                monedaLocal = Convert.ToString(oRecordSet.Fields.Item("MainCurncy").Value)?.Trim() ?? string.Empty;
+                monedaSistema = Convert.ToString(oRecordSet.Fields.Item("SysCurrncy").Value)?.Trim() ?? string.Empty;
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
+        }
+
+        /// <summary>
+        /// Monedas, entre las indicadas, con tipo de cambio de hoy mayor que cero (Repository → Mapper).
+        /// </summary>
+        public HashSet<string> ObtenerMonedasConTipoCambioHoy(ICollection<string> currencyCodes)
+        {
+            if (currencyCodes == null || currencyCodes.Count == 0) return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            Recordset oRecordSet = null;
+            try
+            {
+                oRecordSet = (Recordset)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
+                oRecordSet = ObtenerMonedasConTipoCambioHoy(oRecordSet, currencyCodes);
+                return MapearColumnaTexto(oRecordSet, "Currency");
+            }
+            finally
+            {
+                if (oRecordSet != null) MarshalGC.LiberarComObject(oRecordSet);
+            }
+        }
     }
 }

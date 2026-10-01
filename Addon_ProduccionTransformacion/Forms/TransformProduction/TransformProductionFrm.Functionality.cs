@@ -68,7 +68,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// al menos una línea con subproducto, y cada una debe tener: cantidad obtenida mayor que
         /// cero, almacén existente en SAP, precio nuevo mayor que cero y moneda. Si el subproducto
         /// se maneja por lotes, además número de lote y fechas de vencimiento, fabricación e
-        /// ingreso; si no, el número de lote tiene que quedar vacío. Las filas sin subproducto
+        /// ingreso; si no, el número de lote tiene que quedar vacío. La moneda tiene que existir en
+        /// SAP (OCRN). Las filas sin subproducto
         /// (p.ej. la fila vacía final de la matriz) se ignoran. Además, la suma de la cantidad
         /// obtenida debe coincidir con la Cantidad Consumida de la cabecera con una tolerancia de
         /// ±5% (<see cref="CONSTANTS.TOLERANCIA_CANTIDAD_OBTENIDA"/>). Corta en el primer error.
@@ -82,6 +83,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             // Línea (1-based) y subproducto por almacén, para informar el error de existencia.
             var almacenesPorLinea = new List<Tuple<int, string, string>>();
+            var monedasPorLinea = new List<Tuple<int, string, string>>();
             double sumaObtenida = 0;
 
             // Subproductos que se manejan por lotes (una sola consulta a OITM): solo a esos se les
@@ -121,8 +123,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (ParseDecimal(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.PRICE, i)) <= 0)
                     return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_INVALID_PRICE, linea, itemCode);
 
-                if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i)))
+                string moneda = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i);
+                if (string.IsNullOrWhiteSpace(moneda))
                     return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WITHOUT_CURRENCY, linea, itemCode);
+                monedasPorLinea.Add(Tuple.Create(linea, itemCode, moneda));
 
                 // Las fechas son del lote: solo se exigen si el subproducto se maneja por lotes.
                 if (manejaLote)
@@ -148,6 +152,13 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             if (!ValidarToleranciaCantidadObtenida(oForm, sumaObtenida)) return false;
 
+            // Moneda permitida: tiene que existir en OCRN (una sola consulta para todas las líneas).
+            var monedas = monedasPorLinea.Select(l => l.Item3).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var monedasExistentes = ObtenerMonedasExistentes(monedas);
+            var sinMoneda = monedasPorLinea.FirstOrDefault(l => !monedasExistentes.Contains(l.Item3));
+            if (sinMoneda != null)
+                return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_CURRENCY_NOT_FOUND, sinMoneda.Item1, sinMoneda.Item2, sinMoneda.Item3);
+
             var codigos = almacenesPorLinea.Select(l => l.Item3).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             var existentes = ObtenerAlmacenesExistentes(codigos);
 
@@ -156,6 +167,42 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 return ErrorLinea(CONSTANTS.MESSAGES.CREATE_LINE_WHS_NOT_FOUND, sinAlmacen.Item1, sinAlmacen.Item2, sinAlmacen.Item3);
 
             return true;
+        }
+
+        /// <summary>
+        /// Antes de crear documentos (Crear / Confirmar): cada moneda distinta usada en
+        /// "Moneda (nuevo)" de las líneas, más la moneda de sistema, salvo la moneda local, tiene
+        /// que tener tipo de cambio de hoy (ORTT) mayor que cero. Si falta alguna, lo informa
+        /// listando las monedas y abre la ventana de tipos de cambio.
+        /// </summary>
+        public bool ValidarTipoCambioLineas(SAPbouiCOM.Form oForm)
+        {
+            var oDbDataSource = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
+
+            var monedas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < oDbDataSource.Size; i++)
+            {
+                if (string.IsNullOrWhiteSpace(LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.SUBPRODUCT, i))) continue;
+
+                string moneda = LeerValorLinea(oDbDataSource, CONSTANTS.TABLES.FIELDS_LINE_DB.CURRENT, i);
+                if (!string.IsNullOrWhiteSpace(moneda)) monedas.Add(moneda);
+            }
+
+            ObtenerMonedasSociedad(out string monedaLocal, out string monedaSistema);
+
+            // SAP contabiliza también en moneda de sistema: si difiere de la local necesita su cotización.
+            if (!string.IsNullOrWhiteSpace(monedaSistema)) monedas.Add(monedaSistema);
+            if (!string.IsNullOrWhiteSpace(monedaLocal)) monedas.Remove(monedaLocal);
+
+            if (monedas.Count == 0) return true;
+
+            var conCotizacion = ObtenerMonedasConTipoCambioHoy(monedas);
+            var faltantes = monedas.Where(m => !conCotizacion.Contains(m)).OrderBy(m => m).ToList();
+            if (faltantes.Count == 0) return true;
+
+            ConnectionSDK.UIAPI.ActivateMenuItem(CONSTANTS.SAP_MENUS.EXCHANGE_RATES);
+            NotificationService.MostrarAlerta(string.Format(CONSTANTS.MESSAGES.EXCHANGE_RATE_MISSING, string.Join(", ", faltantes)));
+            return false;
         }
 
         /// <summary>

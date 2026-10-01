@@ -142,6 +142,24 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             return result;
         }
 
+        /// <summary>
+        /// Convierte una columna de texto de un Recordset en un conjunto de valores (sin distinguir
+        /// mayúsculas). El Recordset se posiciona en EoF al terminar.
+        /// </summary>
+        public HashSet<string> MapearColumnaTexto(Recordset recordset, string columna)
+        {
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (recordset == null) return result;
+
+            while (!recordset.EoF)
+            {
+                string valor = Convert.ToString(recordset.Fields.Item(columna).Value)?.Trim();
+                if (!string.IsNullOrEmpty(valor)) result.Add(valor);
+                recordset.MoveNext();
+            }
+            return result;
+        }
+
         private static int ParseInt(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return 0;

@@ -108,9 +108,37 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
 
 ## 🟡 Medios / menores
 
-- [ ] **TP-13 — Tipo de cambio.** Crear chequea `RecordCount == 0`, Confirmar chequea `Rate == 0`
-  (una cotización en 0 pasa en Crear). Los `Recordset` no se liberan. La lógica está inline en
-  el shell de eventos (va en Service/Repository). Evaluar si aplica también a Pendiente.
+- [x] **TP-13 — Monedas y tipo de cambio de las líneas.**
+  *Hoy:* solo se controla la cotización del **USD** del día, y distinto en cada botón: Crear
+  chequea `RecordCount == 0` (una cotización cargada en 0 pasa) y Confirmar chequea `Rate == 0`.
+  Los `Recordset` no se liberan y la lógica está duplicada inline en el shell de eventos (va en
+  Repository/Service). No se mira qué monedas tienen realmente las líneas.
+  *Caso:* las líneas pueden tener 3 o 4 monedas distintas en "Moneda (nuevo)" (`U_ITPS_Curr`),
+  p.ej. ARS, USD, EUR y BRL (las definidas en OCRN: ARS, BRL, CNY, EUR, USD). Si una línea está
+  en EUR y no hay cotización del EUR del día, la Entrada falla o se valúa mal aunque el USD esté
+  cargado.
+  *Propuesta:*
+  - **Moneda permitida:** cada línea con subproducto debe tener una moneda que exista en
+    **OCRN** (`"CurrCode"`). Una sola consulta para todas las monedas de las líneas (mismo
+    patrón que almacenes/lotes: Repository → Mapper → Service), dentro de
+    `ValidarLineasDetalle`. Mensaje: "La línea N (subproducto X): la moneda Y no existe".
+  - **Tipo de cambio por moneda:** para cada moneda **distinta** usada en las líneas que no sea
+    la moneda local (`OADM."MainCurncy"`), exigir cotización del día en **ORTT** con
+    `"Rate" > 0`. Una sola consulta; el mensaje lista las monedas sin cotización
+    ("Falta el tipo de cambio de hoy para: EUR, BRL") y abre la ventana de tipos de cambio
+    (menú 3333), como hoy.
+  - Reemplaza el control actual del USD (que se elimina del shell) y se aplica igual en Crear y
+    en Confirmar. Liberar los `Recordset` en `finally`.
+  *Hecho:*
+  - `ValidarLineasDetalle` exige que la moneda de cada línea exista en OCRN (una consulta:
+    `ObtenerMonedasExistentes`). Aplica a Pendiente, Crear y Confirmar.
+  - `ValidarTipoCambioLineas` exige cotización de hoy (`ORTT."Rate" > 0`) para cada moneda
+    distinta de las líneas más la moneda de sistema, salvo la local (`ObtenerMonedasSociedad`,
+    `ObtenerMonedasConTipoCambioHoy`); si falta, lista las monedas y abre la ventana 3333.
+    Se llama en Crear (opción "Crear") y en Confirmar. Se eliminó el control inline del USD.
+  *Criterios aplicados (a confirmar):* Pendiente no exige cotización (no crea documentos); la
+  cotización es la de hoy; la moneda de sistema se exige si difiere de la local.
+  Pendiente de probar en SAP.
 - [ ] **TP-14 — `ReferenciarDocs`.** Sin `DocumentReferences.Add()`, ignora `GetByKey` y el
   resultado, y en la creación se llama fuera de la transacción. Verificar que la referencia
   quede grabada.

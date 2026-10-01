@@ -14,6 +14,8 @@
             /// <summary>Menús estándar de SAP que cambian el modo del formulario.</summary>
             public static class SAP_MENUS
             {
+                /// <summary>Gestión → Tipos de cambio e índices.</summary>
+                public const string EXCHANGE_RATES = "3333";
                 public const string FIND = "1281";
                 public const string ADD = "1282";
             }
@@ -231,6 +233,8 @@
                 public static string CREATE_LINE_WITHOUT_WHS = "La línea {0} (subproducto {1}) no tiene almacén.";
                 public static string CREATE_LINE_WHS_NOT_FOUND = "La línea {0} (subproducto {1}): el almacén {2} no existe.";
                 public static string CREATE_LINE_INVALID_PRICE = "La línea {0} (subproducto {1}): el precio nuevo debe ser mayor que cero.";
+                public static string CREATE_LINE_CURRENCY_NOT_FOUND = "La línea {0} (subproducto {1}): la moneda {2} no existe en SAP.";
+                public static string EXCHANGE_RATE_MISSING = "Falta el tipo de cambio de hoy para: {0}. Cárguelo en la ventana de tipos de cambio y vuelva a intentar.";
                 public static string CREATE_LINE_WITHOUT_CURRENCY = "La línea {0} (subproducto {1}) no tiene moneda.";
                 public static string CREATE_LINE_WITHOUT_DATE = "La línea {0} (subproducto {1}) no tiene {2}.";
                 public static string CREATE_NO_ENTRY_LINES = "Debe haber al menos una línea de subproducto con lote y cantidad obtenida mayor que cero.";

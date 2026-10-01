@@ -193,20 +193,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 {
                     oForm = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
 
-                    Recordset oRec = ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
-                    string q = $@"SELECT ""Rate"" FROM ORTT WHERE ""Currency"" = 'USD' AND ""RateDate"" = CURRENT_DATE";
-                    oRec.DoQuery(q);
-
-                    // SI ES 0 ABRIR EL FORMULARIO DE TIPO DE CAMBIO PARA QUE EL USUARIO LO CARGUE
-                    if (oRec.Fields.Item(0).Value == 0)
-                    {
-                        ConnectionSDK.UIAPI.ActivateMenuItem("3333");
-                        NotificationService.MostrarAlerta("Debes indicar el tipo de cambio de hoy");
-                        // EL BUUBLE EVENT SE SETEA EN FALSE PARA QUE NO SE GRABE EL DOCUMENTO HASTA QUE EL USUARIO CARGUE EL TIPO DE CAMBIO
-                        BubbleEvent = false;
-                        return;
-                    }
-
                     // Si la confirmación falla o se cancela, se corta acá: no se cierra el contexto
                     // ni se reabre el documento (TP-09).
                     ManejarConfirmarProduccion(oForm, out BubbleEvent);
@@ -276,22 +262,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                         return;
                     }
 
-                    // VALIDAR QUE HAYA CARGADO EL TIPO DE CAMBIO DEL DIA -------------
-                    // TRAER TIPO DE CAMBIO DEL DIA Y VALIDAR QUE NO SEA 0
-                    Recordset oRec = ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.BoRecordset);
-                    string q = $@"SELECT ""Rate"" FROM ORTT WHERE ""Currency"" = 'USD' AND ""RateDate"" = CURRENT_DATE";
-                    oRec.DoQuery(q);
-
-                    // SI ES 0 ABRIR EL FORMULARIO DE TIPO DE CAMBIO PARA QUE EL USUARIO LO CARGUE
-                    if (oRec.RecordCount == 0) {
-                        ConnectionSDK.UIAPI.ActivateMenuItem("3333");
-                        NotificationService.MostrarAlerta("Debes indicar el tipo de cambio de hoy");
-                        // EL BUUBLE EVENT SE SETEA EN FALSE PARA QUE NO SE GRABE EL DOCUMENTO HASTA QUE EL USUARIO CARGUE EL TIPO DE CAMBIO
-                        BubbleEvent = false;
-                        return;
-                    }
-
-
                     int respuesta = ConnectionSDK.UIAPI.MessageBox("¿Confirma la creación y continuación con las transacciones correspondientes? De lo contrario, quedará pendiente para su posterior gestión.", 1, "Pendiente", "Crear", "Cancelar");
                     var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
 
@@ -300,7 +270,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     if (respuesta == 2) // Crear - Estado Completado (transaccionar Entrada y Salida)
                     {
                         // Se valida ANTES de grabar: si falla, BubbleEvent = false y el UDO no se agrega.
-                        if (!PrepararCreacionCompletada(oForm, ctx))
+                        // El tipo de cambio solo hace falta si se crean documentos (no en Pendiente).
+                        if (!ValidarTipoCambioLineas(oForm) || !PrepararCreacionCompletada(oForm, ctx))
                         {
                             BubbleEvent = false;
                             return;
