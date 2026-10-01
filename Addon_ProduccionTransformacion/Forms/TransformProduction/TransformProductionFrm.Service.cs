@@ -239,6 +239,48 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Después de Agregar el formulario sigue abierto en un documento nuevo: se descarta la
+        /// selección de lotes (cierra el form de lotes) y se reinicia el contexto, sin eliminarlo,
+        /// para que se conserve la referencia al formulario (FormTransfProd) y la etiqueta de lotes
+        /// siga actualizándose (TP-12).
+        /// </summary>
+        public void ReiniciarContextoFormulario(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+                DescartarSeleccionLotes(oForm);
+                ContextManager.ObtenerOCrear(oForm.TypeCount.ToString()).ResetearContexto();
+            }
+            finally
+            {
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+        }
+
+        /// <summary>
+        /// Después de Confirmar el formulario sigue abierto mostrando el registro (ya recargado):
+        /// se descarta la selección de lotes y se reconstruye el contexto desde el registro, sin
+        /// eliminarlo (TP-12).
+        /// </summary>
+        public void ManejarProduccionConfirmada(string formUid)
+        {
+            SAPbouiCOM.Form oForm = null;
+            try
+            {
+                oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
+                DescartarSeleccionLotes(oForm);
+            }
+            finally
+            {
+                if (oForm != null) MarshalGC.LiberarComObject(oForm);
+            }
+
+            ManejarRegistroCargado(formUid);
+        }
+
+        /// <summary>
         /// Registro recién cargado (et_FORM_DATA_LOAD con ActionSuccess): reinicia el contexto,
         /// lo reconstruye desde el registro cargado, limpia la etiqueta de lotes y aplica la
         /// habilitación de campos/botones según su estado.
