@@ -98,9 +98,13 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   aplica `FormularioEnModoAgregar` (Confirmar/Documentos/Revertir inactivos, grilla y cantidad
   editables); el botón de lotes se habilita en modo agregar con artículo y cantidad válidos.
   Pendiente de probar en SAP.
-- [ ] **TP-12 — Contexto borrado tras Agregar.** `ManejarCierreFormulario(boi.FormUID)` borra el
+- [x] **TP-12 — Contexto borrado tras Agregar.** `ManejarCierreFormulario(boi.FormUID)` borra el
   contexto de un formulario que sigue abierto: se pierde `FormTransfProd` y la etiqueta de
   lotes deja de actualizarse. Usar `ResetearContexto()` en su lugar.
+  *Hecho:* tras Agregar se llama a `ReiniciarContextoFormulario` (descarta lotes y
+  `ResetearContexto`) y tras Confirmar a `ManejarProduccionConfirmada` (descarta lotes y
+  reconstruye el contexto desde el registro). `ManejarCierreFormulario` queda solo para el cierre
+  real (et_FORM_CLOSE, que ahora delega en él). Pendiente de probar en SAP.
 
 ## 🟡 Medios / menores
 

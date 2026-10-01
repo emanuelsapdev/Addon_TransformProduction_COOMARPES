@@ -66,15 +66,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             #region Al cerrar el formulario se elimina el contexto creado para la producción.
             if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_FORM_CLOSE)
             {
-                var oForm = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
-                var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-                try
-                {
-                    if (ctx.FormBatches != null) ctx.FormBatches.Close();
-                }
-                catch { }
-
-                ContextManager.Eliminar(oForm.TypeCount.ToString());
+                ManejarCierreFormulario(pVal.FormUID);
                 return;
             }
             #endregion
@@ -221,8 +213,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     if (BubbleEvent == false) return;
 
                     string docEntry = ObtenerDocEntry(oForm);
-                    
-                    ManejarCierreFormulario(pVal.FormUID);
+
+                    // Esta ventana sigue abierta mostrando el registro confirmado: se reconstruye su
+                    // contexto en vez de borrarlo (TP-12).
+                    ManejarProduccionConfirmada(pVal.FormUID);
                     AbrirRegistro(docEntry);
                     
                 }
@@ -412,9 +406,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
                     ManejarProduccionAgregada(docEntry, ctx);
 
-                    ManejarCierreFormulario(boi.FormUID);
-
-                    LimpiarEtiquetaLotes(oForm);
+                    // Esta ventana sigue abierta (en un documento nuevo): se reinicia su contexto en
+                    // vez de borrarlo (TP-12).
+                    ReiniciarContextoFormulario(boi.FormUID);
 
                     if (docEntry > 0)
                         AbrirRegistro(docEntry.ToString());

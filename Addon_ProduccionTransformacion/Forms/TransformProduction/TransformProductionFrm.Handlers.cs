@@ -28,7 +28,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
         /// <summary>
         /// Al cerrar el formulario (et_FORM_CLOSE) cierra el formulario de lotes asociado (si
-        /// quedó abierto) y elimina el contexto de la producción.
+        /// quedó abierto) y elimina el contexto de la producción. Solo para el cierre real: si el
+        /// formulario sigue abierto se reinicia el contexto (ver ReiniciarContextoFormulario).
         /// </summary>
         public void ManejarCierreFormulario(string formUid)
         {
