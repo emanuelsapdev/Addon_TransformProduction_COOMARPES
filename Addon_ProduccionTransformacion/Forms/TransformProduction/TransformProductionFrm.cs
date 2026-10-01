@@ -215,6 +215,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                         return;
                     }
 
+                    // Si la confirmación falla o se cancela, se corta acá: no se cierra el contexto
+                    // ni se reabre el documento (TP-09).
                     ManejarConfirmarProduccion(oForm, out BubbleEvent);
                     if (BubbleEvent == false) return;
 

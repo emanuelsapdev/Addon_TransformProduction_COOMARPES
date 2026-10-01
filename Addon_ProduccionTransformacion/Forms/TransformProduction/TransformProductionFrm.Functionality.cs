@@ -337,6 +337,22 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             oItemItemCode.Enabled = false;
         }
 
+        /// <summary>
+        /// Documento nuevo (modo agregar): sin documentos asociados ni nada que confirmar o
+        /// revertir. Grilla y Cantidad consumida editables; el botón de lotes lo maneja
+        /// HabilitarBotonSeleccionLotes (requiere artículo y cantidad) y Producto lo habilita
+        /// SincronizarCampoProducto.
+        /// </summary>
+        public static void FormularioEnModoAgregar(SAPbouiCOM.Form oForm)
+        {
+            oForm.Items.Item(CONSTANTS.UID.BUTTONS.CONFIRM_PROD).Enabled = false;
+            oForm.Items.Item(CONSTANTS.UID.BUTTONS.SHOW_DOCUMENTS).Enabled = false;
+            oForm.Items.Item(CONSTANTS.UID.BUTTONS.REVERT).Enabled = false;
+            oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT).Enabled = false;
+
+            EstablecerEdicionDocumento(oForm, true);
+        }
+
         public static void FormularioEnEstadoCompletado(SAPbouiCOM.Form oForm) 
         {
             SAPbouiCOM.Item oItemBtnBatch = oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT);

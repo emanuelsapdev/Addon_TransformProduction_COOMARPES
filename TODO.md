@@ -82,14 +82,22 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   contexto, etiqueta y form de lotes abierto) al cambiar de artículo; si se borra el artículo
   se limpia la grilla. El CFL ya no recarga la grilla si se elige el mismo artículo (la
   pérdida de foco ya comparaba). Pendiente de probar en SAP.
-- [ ] **TP-09 — Confirmar continúa tras un fallo.** Después de `ManejarConfirmarProduccion` se
+- [x] **TP-09 — Confirmar continúa tras un fallo.** Después de `ManejarConfirmarProduccion` se
   cierra el contexto y se reabre el documento aunque `BubbleEvent` haya quedado en false.
-- [ ] **TP-10 — Revertir deja el form en modo Update.** `EscribirEstadoCabecera` tras revertir deja
+  *Hecho:* el shell corta con `if (BubbleEvent == false) return;` después de
+  `ManejarConfirmarProduccion` (fallo o Cancelar): no se cierra el contexto ni se reabre.
+- [x] **TP-10 — Revertir deja el form en modo Update.** `EscribirEstadoCabecera` tras revertir deja
   cambios pendientes; si el usuario los graba al cerrar, el update del UDO puede vaciar los
   DocEntry de reversión guardados por DI API. Recargar el registro en vez de escribir el combo.
-- [ ] **TP-11 — Habilitación persistente.** `FormularioEnCualquierEstado` deshabilita Producto y
+  *Hecho:* Revertir (TP-01) y Confirmar recargan el registro (`RecargarRegistro`, modo OK) en
+  vez de escribir el combo. Pendiente de probar en SAP.
+- [x] **TP-11 — Habilitación persistente.** `FormularioEnCualquierEstado` deshabilita Producto y
   nada lo rehabilita al pasar a "Nuevo"; los botones quedan como en el registro anterior.
   Retomar la "red de seguridad" OK→ADD comentada (o `SetAutoManagedAttribute` por modo).
+  *Hecho:* el menú Nuevo llama a `ManejarModoAgregar`: reinicia el contexto, descarta lotes y
+  aplica `FormularioEnModoAgregar` (Confirmar/Documentos/Revertir inactivos, grilla y cantidad
+  editables); el botón de lotes se habilita en modo agregar con artículo y cantidad válidos.
+  Pendiente de probar en SAP.
 - [ ] **TP-12 — Contexto borrado tras Agregar.** `ManejarCierreFormulario(boi.FormUID)` borra el
   contexto de un formulario que sigue abierto: se pierde `FormTransfProd` y la etiqueta de
   lotes deja de actualizarse. Usar `ResetearContexto()` en su lugar.

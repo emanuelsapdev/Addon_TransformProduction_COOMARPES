@@ -72,7 +72,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             string qtyConsumed = LeerCantidadConsumida(oForm);
             string status = LeereEstadoCabecera(oForm);
 
-            if(status == CONSTANTS.STAGING_STATUS.PENDING)
+            // Documento nuevo (modo agregar) o Pendiente: se pueden elegir lotes.
+            if (status == CONSTANTS.STAGING_STATUS.PENDING || oForm.Mode == SAPbouiCOM.BoFormMode.fm_ADD_MODE)
             {
                 SAPbouiCOM.Item oItem = oForm.Items.Item(CONSTANTS.UID.BUTTONS.LOTE_SELECT);
                 oItem.Enabled = !string.IsNullOrWhiteSpace(itemCode) && EsCantidadConsumidaValida(qtyConsumed, out _);
@@ -185,7 +186,12 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             ctx.InventoryGenEntriesDocEntry = entryDocEntry;
             ctx.InventoryGenExitsDocEntry = exitDocEntry;
 
-            EscribirEstadoCabecera(oForm, ctx.PrincipalStatus);
+            // Recargar el registro (en vez de escribir el combo) deja el formulario en modo OK con
+            // el estado y los DocEntry persistidos: si quedara en modo Actualizar con el combo
+            // cambiado, grabarlo desde la UI pisaría los DocEntry guardados por DI API (TP-10).
+            RecargarRegistro(oForm, docEntry);
+            AplicarHabilitacionPorEstado(oForm, ctx.PrincipalStatus);
+
             AbrirDocumentosRelacionados(ctx);
         }
 
