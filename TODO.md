@@ -159,9 +159,16 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   (`SonIguales`/`EsMayor`, margen 0,0001): suma de lotes vs Cantidad Consumida en
   `ValidarFormulario` y en el form de lotes (`ValidarCantidadesAsignadas`). Ej.: 1,1 + 2,2 da
   3,3000000000000003 en double. Pendiente de probar en SAP.
-- [ ] **TP-16 — Reversión de la entrada desde la grilla.** Se arma con `ObtenerInfoLineas(oForm)`,
+- [x] **TP-16 — Reversión de la entrada desde la grilla.** Se arma con `ObtenerInfoLineas(oForm)`,
   que sigue editable en Completado. Reconstruir desde el IGN original como ya se hace con la
   salida (`ObtenerExitDataDesdeDocumento`).
+  *Cerrado (opción A):* cubierto por el bloqueo de la grilla en Completado/Revertido
+  (`EstablecerEdicionDocumento`): creación y reversión usan la misma función
+  (`ObtenerInfoLineas`) sobre las mismas líneas, así que la reversión deshace lo que entró.
+  *Riesgo aceptado:* la reversión depende de que las líneas del UDO no se modifiquen por fuera
+  del formulario (Windows Service, SQL, DI API/Service Layer) ni quede la grilla editable en un
+  Completado. Si eso cambia, reconstruir la salida de reversión desde el IGN original (mismo
+  patrón que `ObtenerSalidaParaReversion`).
 - [ ] **TP-17 — Limpieza.**
   - `AbrirDocumentosRelacionados` abre cada documento dos veces.
   - `using` sin uso: `System.Text.Json`, `System.Text.Json.Serialization`, `System.Xml`,
