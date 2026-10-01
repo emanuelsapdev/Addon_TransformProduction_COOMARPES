@@ -159,8 +159,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// Menú "Nuevo" (modo agregar): vuelve a habilitar la grilla y Cantidad consumida, que
-        /// quedan bloqueadas si antes se navegó a un Completado/Revertido. Producto lo habilita
+        /// Menú "Nuevo" (modo agregar): reinicia el contexto y deja botones y edición como
+        /// corresponde a un documento nuevo (ver FormularioEnModoAgregar); antes quedaban como en
+        /// el registro navegado (p.ej. Revertir activo o la grilla bloqueada). Producto lo habilita
         /// SincronizarCampoProducto.
         /// </summary>
         public void ManejarModoAgregar(string formUid)
@@ -171,7 +172,14 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
                 if (oForm.Mode != SAPbouiCOM.BoFormMode.fm_ADD_MODE) return;
 
-                EstablecerEdicionDocumento(oForm, true);
+                // Documento nuevo: se descarta el contexto del registro anterior y se resetean
+                // botones y edición (si no, quedaban como en el registro navegado antes) (TP-11).
+                var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
+                ctx.ResetearContexto();
+                DescartarSeleccionLotes(oForm); // etiqueta y form de lotes del registro anterior
+
+                FormularioEnModoAgregar(oForm);
+                HabilitarBotonSeleccionLotes(oForm);
             }
             finally
             {
