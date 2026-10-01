@@ -364,10 +364,15 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 // Entrada de mercancía: subproductos obtenidos de la transformación.
                 entryDocEntry = CrearEntradaMercancia(ctx.InventoryGenEntriesData);
 
-                // Salida de mercancía: artículo principal consumido, referenciando la entrada
-                // recién creada para que ambos documentos queden vinculados entre sí
-                // ("Documentos Referenciados").
-                exitDocEntry = CrearSalidaMercancia(ctx.InventoryGenExitsData);
+                // Salida de mercancía: artículo principal consumido, grabada ya referenciando la
+                // entrada recién creada ("Documentos referenciados").
+                exitDocEntry = CrearSalidaMercancia(ctx.InventoryGenExitsData,
+                    entryDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
+
+                // La entrada se creó antes que la salida: su referencia a la salida se agrega acá,
+                // dentro de la transacción; si falla, se deshace todo (TP-14).
+                ReferenciarDocs(entryDocEntry, BoObjectTypes.oInventoryGenEntry,
+                    exitDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
 
                 if (!ActualizarResultadoTransformacion(udoDocEntry, CONSTANTS.STAGING_STATUS.COMPLETED, entryDocEntry, exitDocEntry))
                     throw new Exception(CONSTANTS.MESSAGES.COMPLETE_UDO_UPDATE_ERROR);
@@ -375,9 +380,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 ConnectionSDK.DIAPI.EndTransaction(BoWfTransOpt.wf_Commit);
 
                 ctx.PrincipalStatus = CONSTANTS.STAGING_STATUS.COMPLETED;
-
-                ReferenciarDocs(entryDocEntry, BoObjectTypes.oInventoryGenEntry, exitDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
-                ReferenciarDocs(exitDocEntry, BoObjectTypes.oInventoryGenExit, entryDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
 
                 return true;
             }

@@ -280,9 +280,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 // Revertir la SALIDA (IGO del principal) ⇒ generar una ENTRADA (IGN).
                 if (ctx.InventoryGenExitsDocEntry > 0 && ctx.InventoryGenExitsData.Items.Count > 0)
                 {
-                    entryRevDocEntry = CrearEntradaMercancia(ctx.InventoryGenExitsData);
-                    ReferenciarDocs(entryRevDocEntry, BoObjectTypes.oInventoryGenEntry,
-                                    ctx.InventoryGenExitsDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
+                    // Se graba ya referenciando la salida original (TP-14).
+                    entryRevDocEntry = CrearEntradaMercancia(ctx.InventoryGenExitsData,
+                        ctx.InventoryGenExitsDocEntry, ReferencedObjectTypeEnum.rot_GoodsIssue);
                 }
 
                 // Revertir la ENTRADA (IGN de subproductos) ⇒ generar una SALIDA (IGO).
@@ -291,9 +291,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     var entriesData = ObtenerInfoLineas(oForm); // subproductos de la línea UDO
                     if (entriesData.Items.Count > 0)
                     {
-                        exitRevDocEntry = CrearSalidaMercancia(entriesData);
-                        ReferenciarDocs(exitRevDocEntry, BoObjectTypes.oInventoryGenExit,
-                                        ctx.InventoryGenEntriesDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
+                        // Se graba ya referenciando la entrada original (TP-14).
+                        exitRevDocEntry = CrearSalidaMercancia(entriesData,
+                            ctx.InventoryGenEntriesDocEntry, ReferencedObjectTypeEnum.rot_GoodsReceipt);
                     }
                 }
 
