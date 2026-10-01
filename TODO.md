@@ -150,9 +150,15 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   y lanza excepción si falla, así se hace rollback de todo. (DocumentReferences no expone
   `Count` en esta DI API: la referencia se carga en la primera línea, siempre sobre documentos
   sin referencias previas.) Pendiente de probar en SAP.
-- [ ] **TP-15 — Validaciones faltantes.** `ValidarFormulario` no verifica que haya líneas de
+- [x] **TP-15 — Validaciones faltantes.** `ValidarFormulario` no verifica que haya líneas de
   entrada con lote ni que el Producto (si se tipea a mano) tenga lista de materiales.
   Comparaciones `==`/`!=` entre `double` (usar tolerancia).
+  *Hecho:* líneas con lote y Producto sin lista de materiales ya los cubre `ValidarLineasDetalle`
+  (lote según manejo por lotes; sin BOM no hay líneas y bloquea "Debe cargar al menos una línea").
+  Las comparaciones exactas de cantidades se reemplazaron por `Tools.NumberHelper`
+  (`SonIguales`/`EsMayor`, margen 0,0001): suma de lotes vs Cantidad Consumida en
+  `ValidarFormulario` y en el form de lotes (`ValidarCantidadesAsignadas`). Ej.: 1,1 + 2,2 da
+  3,3000000000000003 en double. Pendiente de probar en SAP.
 - [ ] **TP-16 — Reversión de la entrada desde la grilla.** Se arma con `ObtenerInfoLineas(oForm)`,
   que sigue editable en Completado. Reconstruir desde el IGN original como ya se hace con la
   salida (`ObtenerExitDataDesdeDocumento`).
