@@ -157,6 +157,76 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Monedas (OCRN) que existen entre los códigos indicados.
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <param name="currencyCodes">Códigos de moneda a buscar (no vacío).</param>
+        /// <returns>Recordset con la columna "CurrCode".</returns>
+        public Recordset ObtenerMonedasExistentes(Recordset oRec, IEnumerable<string> currencyCodes)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            string codigos = string.Join(", ", currencyCodes.Select(c => $"'{SqlEscapeHelper.EscapeSql(c)}'"));
+
+            try
+            {
+                oRec.DoQuery($@"SELECT ""CurrCode"" FROM OCRN WHERE ""CurrCode"" IN ({codigos});");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Moneda local y moneda de sistema de la sociedad (OADM).
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <returns>Recordset con las columnas "MainCurncy" y "SysCurrncy".</returns>
+        public Recordset ObtenerMonedasSociedad(Recordset oRec)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            try
+            {
+                oRec.DoQuery(@"SELECT ""MainCurncy"", ""SysCurrncy"" FROM OADM;");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Monedas, entre las indicadas, que tienen tipo de cambio de hoy (ORTT) mayor que cero.
+        /// </summary>
+        /// <param name="oRec">Recordset a ejecutar (lo libera el caller en finally).</param>
+        /// <param name="currencyCodes">Códigos de moneda a buscar (no vacío).</param>
+        /// <returns>Recordset con la columna "Currency".</returns>
+        public Recordset ObtenerMonedasConTipoCambioHoy(Recordset oRec, IEnumerable<string> currencyCodes)
+        {
+            if (oRec == null) throw new ArgumentNullException(nameof(oRec));
+
+            string codigos = string.Join(", ", currencyCodes.Select(c => $"'{SqlEscapeHelper.EscapeSql(c)}'"));
+
+            try
+            {
+                oRec.DoQuery($@"SELECT ""Currency"" FROM ORTT 
+                                WHERE ""Currency"" IN ({codigos}) AND ""RateDate"" = CURRENT_DATE AND ""Rate"" > 0;");
+                return oRec;
+            }
+            catch
+            {
+                if (oRec != null) Marshal.ReleaseComObject(oRec);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Crea la entrada de mercancía (Goods Receipt, artículos obtenidos de la transformación)
         /// a partir de <see cref="TransformProductionContext.InventoryGenEntriesData"/>.
         /// </summary>

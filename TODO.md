@@ -108,7 +108,7 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
 
 ## 🟡 Medios / menores
 
-- [ ] **TP-13 — Monedas y tipo de cambio de las líneas.**
+- [x] **TP-13 — Monedas y tipo de cambio de las líneas.**
   *Hoy:* solo se controla la cotización del **USD** del día, y distinto en cada botón: Crear
   chequea `RecordCount == 0` (una cotización cargada en 0 pasa) y Confirmar chequea `Rate == 0`.
   Los `Recordset` no se liberan y la lógica está duplicada inline en el shell de eventos (va en
@@ -129,11 +129,16 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
     (menú 3333), como hoy.
   - Reemplaza el control actual del USD (que se elimina del shell) y se aplica igual en Crear y
     en Confirmar. Liberar los `Recordset` en `finally`.
-  *Dudas abiertas:*
-  - ¿Con **Pendiente** se exige la cotización? (no se crean documentos hasta Confirmar, donde
-    se volvería a validar).
-  - ¿La cotización se toma de la **fecha del día** (hoy) o de otra fecha (p.ej. la del documento)?
-  - ¿Hace falta controlar también la moneda de sistema (`OADM."SysCurrncy"`) si difiere de la local?
+  *Hecho:*
+  - `ValidarLineasDetalle` exige que la moneda de cada línea exista en OCRN (una consulta:
+    `ObtenerMonedasExistentes`). Aplica a Pendiente, Crear y Confirmar.
+  - `ValidarTipoCambioLineas` exige cotización de hoy (`ORTT."Rate" > 0`) para cada moneda
+    distinta de las líneas más la moneda de sistema, salvo la local (`ObtenerMonedasSociedad`,
+    `ObtenerMonedasConTipoCambioHoy`); si falta, lista las monedas y abre la ventana 3333.
+    Se llama en Crear (opción "Crear") y en Confirmar. Se eliminó el control inline del USD.
+  *Criterios aplicados (a confirmar):* Pendiente no exige cotización (no crea documentos); la
+  cotización es la de hoy; la moneda de sistema se exige si difiere de la local.
+  Pendiente de probar en SAP.
 - [ ] **TP-14 — `ReferenciarDocs`.** Sin `DocumentReferences.Add()`, ignora `GetByKey` y el
   resultado, y en la creación se llama fuera de la transacción. Verificar que la referencia
   quede grabada.

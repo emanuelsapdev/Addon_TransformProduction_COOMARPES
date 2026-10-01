@@ -170,6 +170,9 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             // (lotes, cantidades, almacén, precio, moneda, fechas y tolerancia ±5%).
             if (!ValidarLineasDetalle(oForm)) { BubbleEvent = false; return; }
 
+            // Tipo de cambio de hoy para cada moneda de las líneas (y la de sistema), salvo la local.
+            if (!ValidarTipoCambioLineas(oForm)) { BubbleEvent = false; return; }
+
             if (!ValidarFormulario(oForm, ctx)) { BubbleEvent = false; return; }
 
             // Se pregunta recién con todo validado, antes de mover stock.
