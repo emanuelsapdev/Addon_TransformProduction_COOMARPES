@@ -405,7 +405,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// <summary>
         /// Agrega al documento ya grabado <paramref name="docEntry"/> una referencia a
         /// <paramref name="refDocEntry"/> ("Documentos referenciados") y lo actualiza. Pensado
-        /// para usarse dentro de la transacción de creación: si el documento no existe o SAP
+        /// para usarse dentro de la transacción de creación, sobre un documento recién creado y
+        /// sin referencias previas (ver AgregarReferencia): si el documento no existe o SAP
         /// rechaza la actualización, lanza una excepción para que se haga rollback de todo.
         /// </summary>
         public void ReferenciarDocs(int docEntry, BoObjectTypes docObj, int refDocEntry, ReferencedObjectTypeEnum refObjectType)
@@ -419,7 +420,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (!oDoc.GetByKey(docEntry))
                     throw new Exception(string.Format(CONSTANTS.MESSAGES.REFERENCE_DOC_NOT_FOUND, docEntry));
 
-                if (!AgregarReferencia(oDoc, refDocEntry, refObjectType)) return; // ya estaba referenciado
+                AgregarReferencia(oDoc, refDocEntry, refObjectType);
 
                 if (oDoc.Update() != 0)
                 {
@@ -434,30 +435,17 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// Agrega una línea de "Documentos referenciados" sin pisar las existentes. Devuelve false
-        /// si el documento ya tenía esa misma referencia.
+        /// Carga la referencia en la línea actual de "Documentos referenciados". En esta versión
+        /// de la DI API la colección no expone Count (no se puede recorrer), así que se usa solo
+        /// sobre documentos sin referencias previas, donde la línea actual es la primera y viene
+        /// vacía: documentos nuevos antes del Add, o la Entrada recién creada en la misma
+        /// transacción (ver ReferenciarDocs).
         /// </summary>
-        private static bool AgregarReferencia(Documents oDoc, int refDocEntry, ReferencedObjectTypeEnum refObjectType)
+        private static void AgregarReferencia(Documents oDoc, int refDocEntry, ReferencedObjectTypeEnum refObjectType)
         {
             var oRefs = oDoc.DocumentReferences;
-
-            for (int i = 0; i < oRefs.Count; i++)
-            {
-                oRefs.SetCurrentLine(i);
-                if (oRefs.ReferencedDocEntry == refDocEntry && oRefs.ReferencedObjectType == refObjectType)
-                    return false;
-            }
-
-            // La primera línea viene vacía; si la última ya tiene datos, se agrega una nueva.
-            if (oRefs.Count > 0)
-            {
-                oRefs.SetCurrentLine(oRefs.Count - 1);
-                if (oRefs.ReferencedDocEntry > 0) oRefs.Add();
-            }
-
             oRefs.ReferencedObjectType = refObjectType;
             oRefs.ReferencedDocEntry = refDocEntry;
-            return true;
         }
 
         /// <summary>

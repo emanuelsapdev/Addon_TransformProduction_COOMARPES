@@ -146,8 +146,10 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   (`CrearEntradaMercancia`/`CrearSalidaMercancia` con `refDocEntry`/`refObjectType`): la Salida
   referencia a la Entrada y, en la reversión, cada documento referencia al original. La única
   actualización posterior (Entrada → Salida) se hace con `ReferenciarDocs` dentro de la misma
-  transacción: valida `GetByKey`, agrega la línea sin pisar las existentes (`AgregarReferencia`)
-  y lanza excepción si falla, así se hace rollback de todo. Pendiente de probar en SAP.
+  transacción: valida `GetByKey`, carga la referencia (`AgregarReferencia`)
+  y lanza excepción si falla, así se hace rollback de todo. (DocumentReferences no expone
+  `Count` en esta DI API: la referencia se carga en la primera línea, siempre sobre documentos
+  sin referencias previas.) Pendiente de probar en SAP.
 - [ ] **TP-15 — Validaciones faltantes.** `ValidarFormulario` no verifica que haya líneas de
   entrada con lote ni que el Producto (si se tipea a mano) tenga lista de materiales.
   Comparaciones `==`/`!=` entre `double` (usar tolerancia).
