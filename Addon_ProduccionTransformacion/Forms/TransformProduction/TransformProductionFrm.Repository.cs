@@ -231,19 +231,17 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// a partir de <see cref="TransformProductionContext.InventoryGenEntriesData"/>.
         /// </summary>
         /// <param name="model">Líneas/lotes de la entrada a crear.</param>
-        /// <param name="baseDocObjectType">
-        /// Tipo de documento base a referenciar (documentos relacionados), o null si no aplica.
-        /// </param>
-        /// <param name="baseDocEntry">DocEntry del documento base a referenciar, si corresponde.</param>
+        /// <param name="refDocEntry">DocEntry del documento a referenciar (0 = sin referencia).</param>
+        /// <param name="refObjectType">Tipo del documento a referenciar ("Documentos referenciados").</param>
         /// <returns>DocEntry del documento creado.</returns>
-        public int CrearEntradaMercancia(InventoryGenModel model)
+        public int CrearEntradaMercancia(InventoryGenModel model, int refDocEntry = 0, ReferencedObjectTypeEnum? refObjectType = null)
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
 
             var oDoc = (Documents)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.oInventoryGenEntry);
             try
             {
-                return CrearDocumentoInventario(oDoc, model, esEntrada: true);
+                return CrearDocumentoInventario(oDoc, model, esEntrada: true, refDocEntry: refDocEntry, refObjectType: refObjectType);
             }
             finally
             {
@@ -256,19 +254,17 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// a partir de <see cref="TransformProductionContext.InventoryGenExitsData"/>.
         /// </summary>
         /// <param name="model">Líneas/lotes de la salida a crear.</param>
-        /// <param name="baseDocObjectType">
-        /// Tipo de documento base a referenciar (documentos relacionados), o null si no aplica.
-        /// </param>
-        /// <param name="baseDocEntry">DocEntry del documento base a referenciar, si corresponde.</param>
+        /// <param name="refDocEntry">DocEntry del documento a referenciar (0 = sin referencia).</param>
+        /// <param name="refObjectType">Tipo del documento a referenciar ("Documentos referenciados").</param>
         /// <returns>DocEntry del documento creado.</returns>
-        public int CrearSalidaMercancia(InventoryGenModel model)
+        public int CrearSalidaMercancia(InventoryGenModel model, int refDocEntry = 0, ReferencedObjectTypeEnum? refObjectType = null)
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
 
             var oDoc = (Documents)ConnectionSDK.DIAPI.GetBusinessObject(BoObjectTypes.oInventoryGenExit);
             try
             {
-                return CrearDocumentoInventario(oDoc, model, esEntrada: false);
+                return CrearDocumentoInventario(oDoc, model, esEntrada: false, refDocEntry: refDocEntry, refObjectType: refObjectType);
             }
             finally
             {
@@ -341,10 +337,16 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         /// referencia todas las líneas a la primera línea de ese documento base para que quede
         /// relacionado en "Documentos Referenciados".
         /// </summary>
-        private int CrearDocumentoInventario(Documents oDoc, InventoryGenModel model, bool esEntrada)
+        private int CrearDocumentoInventario(Documents oDoc, InventoryGenModel model, bool esEntrada,
+            int refDocEntry = 0, ReferencedObjectTypeEnum? refObjectType = null)
         {
             oDoc.DocDate = model.DocDate ?? DateTime.Today;
             oDoc.TaxDate = model.TaxDate ?? DateTime.Today;
+
+            // "Documentos referenciados": se carga antes de grabar, así no hace falta actualizar
+            // el documento después (TP-14).
+            if (refDocEntry > 0 && refObjectType.HasValue)
+                AgregarReferencia(oDoc, refDocEntry, refObjectType.Value);
 
             for (int i = 0; i < model.Items.Count; i++)
             {
@@ -400,38 +402,50 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             return int.Parse(newKey);
         }
 
-
-        public bool ReferenciarDocs(int docEntry = 0, BoObjectTypes? docObj = null, int baseDocEntry = 0, ReferencedObjectTypeEnum? referencedObject = null)
+        /// <summary>
+        /// Agrega al documento ya grabado <paramref name="docEntry"/> una referencia a
+        /// <paramref name="refDocEntry"/> ("Documentos referenciados") y lo actualiza. Pensado
+        /// para usarse dentro de la transacción de creación, sobre un documento recién creado y
+        /// sin referencias previas (ver AgregarReferencia): si el documento no existe o SAP
+        /// rechaza la actualización, lanza una excepción para que se haga rollback de todo.
+        /// </summary>
+        public void ReferenciarDocs(int docEntry, BoObjectTypes docObj, int refDocEntry, ReferencedObjectTypeEnum refObjectType)
         {
-            if (docEntry == 0) throw new ArgumentNullException(nameof(docEntry));
-            if (baseDocEntry == 0) throw new ArgumentNullException(nameof(baseDocEntry));
-            if(!docObj.HasValue) throw new ArgumentNullException(nameof(docObj));
+            if (docEntry <= 0) throw new ArgumentOutOfRangeException(nameof(docEntry));
+            if (refDocEntry <= 0) throw new ArgumentOutOfRangeException(nameof(refDocEntry));
 
-            var oDoc = (Documents)ConnectionSDK.DIAPI.GetBusinessObject(docObj.Value);
+            var oDoc = (Documents)ConnectionSDK.DIAPI.GetBusinessObject(docObj);
             try
             {
-                oDoc.GetByKey(docEntry);
+                if (!oDoc.GetByKey(docEntry))
+                    throw new Exception(string.Format(CONSTANTS.MESSAGES.REFERENCE_DOC_NOT_FOUND, docEntry));
 
-                if (referencedObject.HasValue)
-                {
-                    oDoc.DocumentReferences.ReferencedDocEntry = baseDocEntry;
-                    oDoc.DocumentReferences.ReferencedObjectType = referencedObject.Value;
-                }
+                AgregarReferencia(oDoc, refDocEntry, refObjectType);
 
-                if(oDoc.Update() != 0)
+                if (oDoc.Update() != 0)
                 {
                     ConnectionSDK.DIAPI.GetLastError(out int err, out string msg);
-                    NotificationService.MostrarError($"Error: {err} - {msg}");
-                    return false;
+                    throw new Exception(string.Format(CONSTANTS.MESSAGES.REFERENCE_UPDATE_ERROR, docEntry, err, msg));
                 }
-                return true;
             }
             finally
             {
                 MarshalGC.LiberarComObject(oDoc);
             }
+        }
 
-
+        /// <summary>
+        /// Carga la referencia en la línea actual de "Documentos referenciados". En esta versión
+        /// de la DI API la colección no expone Count (no se puede recorrer), así que se usa solo
+        /// sobre documentos sin referencias previas, donde la línea actual es la primera y viene
+        /// vacía: documentos nuevos antes del Add, o la Entrada recién creada en la misma
+        /// transacción (ver ReferenciarDocs).
+        /// </summary>
+        private static void AgregarReferencia(Documents oDoc, int refDocEntry, ReferencedObjectTypeEnum refObjectType)
+        {
+            var oRefs = oDoc.DocumentReferences;
+            oRefs.ReferencedObjectType = refObjectType;
+            oRefs.ReferencedDocEntry = refDocEntry;
         }
 
         /// <summary>

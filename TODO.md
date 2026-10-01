@@ -139,9 +139,17 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   *Criterios aplicados (a confirmar):* Pendiente no exige cotización (no crea documentos); la
   cotización es la de hoy; la moneda de sistema se exige si difiere de la local.
   Pendiente de probar en SAP.
-- [ ] **TP-14 — `ReferenciarDocs`.** Sin `DocumentReferences.Add()`, ignora `GetByKey` y el
+- [x] **TP-14 — `ReferenciarDocs`.** Sin `DocumentReferences.Add()`, ignora `GetByKey` y el
   resultado, y en la creación se llama fuera de la transacción. Verificar que la referencia
   quede grabada.
+  *Hecho:* cada documento se graba con su referencia cargada antes del `Add`
+  (`CrearEntradaMercancia`/`CrearSalidaMercancia` con `refDocEntry`/`refObjectType`): la Salida
+  referencia a la Entrada y, en la reversión, cada documento referencia al original. La única
+  actualización posterior (Entrada → Salida) se hace con `ReferenciarDocs` dentro de la misma
+  transacción: valida `GetByKey`, carga la referencia (`AgregarReferencia`)
+  y lanza excepción si falla, así se hace rollback de todo. (DocumentReferences no expone
+  `Count` en esta DI API: la referencia se carga en la primera línea, siempre sobre documentos
+  sin referencias previas.) Pendiente de probar en SAP.
 - [ ] **TP-15 — Validaciones faltantes.** `ValidarFormulario` no verifica que haya líneas de
   entrada con lote ni que el Producto (si se tipea a mano) tenga lista de materiales.
   Comparaciones `==`/`!=` entre `double` (usar tolerancia).
