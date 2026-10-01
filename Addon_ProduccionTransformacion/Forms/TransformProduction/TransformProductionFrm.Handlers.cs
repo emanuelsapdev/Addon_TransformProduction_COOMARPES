@@ -22,8 +22,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             var oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
             var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
             ctx.FormTransfProd = oForm;
-
-            //InicializarFormulario(oForm);
         }
 
         /// <summary>
@@ -82,32 +80,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// El usuario seleccionó el menú del addon que abre este formulario: reutiliza la
-        /// instancia existente si ya está abierta, o crea un documento nuevo de producción.
-        /// </summary>
-        public void ManejarMenuRegistrado()
-        {
-            if (MostrarFormularioExistente()) return;
-
-            AbrirFormularioNuevo();
-        }
-
-        private bool MostrarFormularioExistente()
-        {
-            try
-            {
-                var oExisting = ConnectionSDK.UIAPI.Forms.Item(CONSTANTS.UID.FORM);
-                oExisting.Select();
-                oExisting.Visible = true;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
         /// BeforeAction de "Crear" con la opción Completado: valida el formulario (artículo,
         /// cantidad, lotes y líneas de subproductos) mientras todavía no se grabó el UDO, y
         /// guarda en el contexto la entrada/salida a generar al agregarse. Devuelve false si no
@@ -131,19 +103,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             ctx.SalidasAlAgregar = ctx.InventoryGenExitsData;
             ctx.CompletarAlAgregar = true;
             return true;
-        }
-        public void ManejarCreacionProduccionPendiente(SAPbouiCOM.Form oForm, out bool BubbleEvent)
-        {
-            BubbleEvent = true;
-
-            var ctx = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
-            if (!ValidarFormulario(oForm, ctx))
-            {
-                BubbleEvent = false;
-                return;
-            }
-
-            //CrearProduccionPendiente(ctx);
         }
 
         /// <summary>

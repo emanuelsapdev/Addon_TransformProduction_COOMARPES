@@ -222,8 +222,6 @@
                 public static string TABLE_LINE_INFRA_ERROR_PREFIX = $"Error creando tabla {TABLES.TRANSFORM_PRODUCTION_LINE}: ";
 
                 public static string MENU_REGISTER_ERROR_PREFIX = "Error registrando el menú del addon: ";
-                public static string FORM_OPEN_ERROR_PREFIX = "Error abriendo un documento nuevo de producción/transformación: ";
-                public static string FORM_INIT_ERROR_PREFIX = "Error inicializando el formulario de producción/transformación: ";
                 public static string CREATE_INVALID_CONSUMED_QTY = "La cantidad consumida debe ser un número mayor que cero.";
                 public static string CREATE_QTY_OUT_OF_TOLERANCE = "La suma de la cantidad obtenida ({0}) no coincide con la cantidad consumida ({1}): se admite una diferencia de ±{2} (entre {3} y {4}).";
                 public static string CREATE_NO_DETAIL_LINES = "Debe cargar al menos una línea de detalle (subproducto).";

@@ -4,10 +4,6 @@ using Addon_TransformProduction.Tools;
 using SAPbobsCOM;
 using SAPbouiCOM;
 using System;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using System.Xml;
 
 namespace Addon_TransformProduction.Forms.TransformProduction
 {
@@ -15,8 +11,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
     {
         public const string FormType = CONSTANTS.FORM_TYPE;
         public const string FormUniqueID = CONSTANTS.FORM_TYPE;
-
-        public static string FatherItemCode = string.Empty;
 
         /// <summary>
         /// Shell de eventos: determina qué item/evento/columna dispara cada evento y
@@ -299,37 +293,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                     }
                 }
             }
-
-            // Red de seguridad: al pasar de OK_MODE a ADD_MODE (botón "Nuevo" después de grabar),
-            // resetear el contexto antes de cargar un nuevo registro. La transición se detecta
-            // comparando el modo actual con el último observado (sin depender de FormModeEx).
-            //if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_ALL_EVENTS)
-            //{
-            //    SAPbouiCOM.Form oFormTrans = null;
-            //    try
-            //    {
-            //        oFormTrans = ConnectionSDK.UIAPI.Forms.Item(pVal.FormUID);
-            //        var ctxTrans = ContextManager.ObtenerOCrear(oFormTrans.TypeCount.ToString());
-
-            //        if (ctxTrans.UltimoModoFormulario == BoFormMode.fm_OK_MODE
-            //            && oFormTrans.Mode == BoFormMode.fm_ADD_MODE)
-            //        {
-            //            ctxTrans.ResetearContexto();
-            //        }
-
-            //        ctxTrans.UltimoModoFormulario = oFormTrans.Mode;
-            //    }
-            //    catch { }
-            //    finally
-            //    {
-            //        if (oFormTrans != null)
-            //        {
-            //            MarshalGC.LiberarComObject(oFormTrans);
-            //            oFormTrans = null;
-            //        }
-            //    }
-            //}
-
         }
 
         public void OnFormDataEvent(ref BusinessObjectInfo boi, out bool BubbleEvent)

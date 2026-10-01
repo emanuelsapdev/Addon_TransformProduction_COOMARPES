@@ -44,13 +44,6 @@ namespace Addon_TransformProduction.Models
         public InventoryGenModel SalidasAlAgregar { get; set; }
 
         /// <summary>
-        /// Último modo de formulario observado: permite detectar la transición fm_OK_MODE →
-        /// fm_ADD_MODE (botón "Nuevo") sin depender de FormModeEx, para resetear el contexto
-        /// justo al empezar un documento nuevo.
-        /// </summary>
-        public SAPbouiCOM.BoFormMode? UltimoModoFormulario { get; set; }
-
-        /// <summary>
         /// Devuelve el contexto a sus valores iniciales (los del constructor): borra el estado
         /// del registro anterior (artículo, cantidad, estado, XML de lotes, modelos de salida y
         /// entrada y DocEntry). Conserva las referencias de formulario (FormTransfProd/FormBatches),
