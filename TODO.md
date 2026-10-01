@@ -169,12 +169,19 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
   del formulario (Windows Service, SQL, DI API/Service Layer) ni quede la grilla editable en un
   Completado. Si eso cambia, reconstruir la salida de reversión desde el IGN original (mismo
   patrón que `ObtenerSalidaParaReversion`).
-- [ ] **TP-17 — Limpieza.**
+- [x] **TP-17 — Limpieza.**
   - `AbrirDocumentosRelacionados` abre cada documento dos veces.
   - `using` sin uso: `System.Text.Json`, `System.Text.Json.Serialization`, `System.Xml`,
     `System.Threading.Tasks` (TransformProductionFrm.cs), `VisualStyleElement` (Functionality).
   - Código muerto: `FatherItemCode`, `AbrirFormularioNuevo`, `ManejarCreacionProduccionPendiente`,
     `InicializarFormulario`, `OnMenuEvent` comentado.
+  *Hecho:* `AbrirDocumentosRelacionados` ya no duplicaba (corregido antes en master). Se borraron
+  los `using` sin uso y el código muerto: `FatherItemCode`, `AbrirFormularioNuevo` (y
+  `RutaXmlFormulario`), `InicializarFormulario` (y su llamada comentada),
+  `ManejarCreacionProduccionPendiente`, `ManejarMenuRegistrado` y su `MostrarFormularioExistente`
+  (sin llamadas), la "red de seguridad" OK→ADD comentada (reemplazada por TP-11) con
+  `UltimoModoFormulario`, y los mensajes `FORM_OPEN_ERROR_PREFIX`/`FORM_INIT_ERROR_PREFIX`.
+  Sin cambios de comportamiento. Pendiente de compilar.
 
 ## Relacionado
 
