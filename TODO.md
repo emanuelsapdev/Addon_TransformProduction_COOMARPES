@@ -108,9 +108,32 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
 
 ## 🟡 Medios / menores
 
-- [ ] **TP-13 — Tipo de cambio.** Crear chequea `RecordCount == 0`, Confirmar chequea `Rate == 0`
-  (una cotización en 0 pasa en Crear). Los `Recordset` no se liberan. La lógica está inline en
-  el shell de eventos (va en Service/Repository). Evaluar si aplica también a Pendiente.
+- [ ] **TP-13 — Monedas y tipo de cambio de las líneas.**
+  *Hoy:* solo se controla la cotización del **USD** del día, y distinto en cada botón: Crear
+  chequea `RecordCount == 0` (una cotización cargada en 0 pasa) y Confirmar chequea `Rate == 0`.
+  Los `Recordset` no se liberan y la lógica está duplicada inline en el shell de eventos (va en
+  Repository/Service). No se mira qué monedas tienen realmente las líneas.
+  *Caso:* las líneas pueden tener 3 o 4 monedas distintas en "Moneda (nuevo)" (`U_ITPS_Curr`),
+  p.ej. ARS, USD, EUR y BRL (las definidas en OCRN: ARS, BRL, CNY, EUR, USD). Si una línea está
+  en EUR y no hay cotización del EUR del día, la Entrada falla o se valúa mal aunque el USD esté
+  cargado.
+  *Propuesta:*
+  - **Moneda permitida:** cada línea con subproducto debe tener una moneda que exista en
+    **OCRN** (`"CurrCode"`). Una sola consulta para todas las monedas de las líneas (mismo
+    patrón que almacenes/lotes: Repository → Mapper → Service), dentro de
+    `ValidarLineasDetalle`. Mensaje: "La línea N (subproducto X): la moneda Y no existe".
+  - **Tipo de cambio por moneda:** para cada moneda **distinta** usada en las líneas que no sea
+    la moneda local (`OADM."MainCurncy"`), exigir cotización del día en **ORTT** con
+    `"Rate" > 0`. Una sola consulta; el mensaje lista las monedas sin cotización
+    ("Falta el tipo de cambio de hoy para: EUR, BRL") y abre la ventana de tipos de cambio
+    (menú 3333), como hoy.
+  - Reemplaza el control actual del USD (que se elimina del shell) y se aplica igual en Crear y
+    en Confirmar. Liberar los `Recordset` en `finally`.
+  *Dudas abiertas:*
+  - ¿Con **Pendiente** se exige la cotización? (no se crean documentos hasta Confirmar, donde
+    se volvería a validar).
+  - ¿La cotización se toma de la **fecha del día** (hoy) o de otra fecha (p.ej. la del documento)?
+  - ¿Hace falta controlar también la moneda de sistema (`OADM."SysCurrncy"`) si difiere de la local?
 - [ ] **TP-14 — `ReferenciarDocs`.** Sin `DocumentReferences.Add()`, ignora `GetByKey` y el
   resultado, y en la creación se llama fuera de la transacción. Verificar que la referencia
   quede grabada.
