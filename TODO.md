@@ -178,6 +178,6 @@ Prioridad: 🔴 crítico (puede duplicar/romper stock o dejar datos inconsistent
 
 ## Relacionado
 
-- [ ] **TP-18 — Filtro del ChooseFromList de Producto** (solo artículos con lista de materiales,
-  `OITM."TreeType" = 'P'`). Implementado en la rama `claude/practical-brahmagupta-vh57eb`;
-  pendiente de probar en SAP.
+- [x] **TP-18 — Filtro del ChooseFromList de Producto** (solo artículos con lista de materiales,
+  `OITM."TreeType" = 'P'`). Implementado en la rama `claude/practical-brahmagupta-vh57eb`
+  (PR #1). *Probado en SAP:* funciona correctamente.
