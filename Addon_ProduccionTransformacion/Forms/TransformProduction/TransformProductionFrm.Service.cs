@@ -34,6 +34,11 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 if (data != null && data.Count > 0)
                 {
                     PoblarGrillaMateriales(oForm, data);
+
+                    // Las cantidades del BOM son por unidad de factor.
+                    double factor = ObtenerFactorAplicado(oForm.UniqueID);
+                    if (Math.Abs(factor - CONSTANTS.FACTOR_POR_DEFECTO) > ToleranciaFactor)
+                        MultiplicarCantidadesDetalle(oForm, factor);
                 }
                 else
                 {
@@ -133,6 +138,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
                 if (AsegurarCampoProductoConFiltro(oForm))
                     SincronizarCampoProducto(oForm);
+
+                AsegurarCampoFactor(oForm);
             }
             finally
             {
@@ -180,6 +187,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
                 FormularioEnModoAgregar(oForm);
                 HabilitarBotonSeleccionLotes(oForm);
+                IniciarFactor(oForm);
             }
             finally
             {
@@ -252,6 +260,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oForm = ConnectionSDK.UIAPI.Forms.Item(formUid);
                 DescartarSeleccionLotes(oForm);
                 ContextManager.ObtenerOCrear(oForm.TypeCount.ToString()).ResetearContexto();
+                IniciarFactor(oForm);
             }
             finally
             {
@@ -296,6 +305,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 ctx.ResetearContexto();
                 ReconstruirContextoDesdeForm(oForm, ctx);
                 LimpiarEtiquetaLotes(oForm);
+                RegistrarFactorAplicado(oForm);
 
                 oForm.Freeze(true);
                 AplicarHabilitacionPorEstado(oForm, ctx.PrincipalStatus);
@@ -340,6 +350,101 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             var context = ContextManager.ObtenerOCrear(oForm.TypeCount.ToString());
             context.PrincipalQuantityConsumed = qty;
+        }
+
+        private const double ToleranciaFactor = 0.000001;
+
+        /// <summary>
+        /// Factor ya aplicado a las cantidades de cada formulario abierto (clave: FormUID). Hace
+        /// falta para reescalar con la proporción nuevo/anterior al cambiar el factor: cuando se
+        /// valida el campo, el DBDataSource ya tiene el valor nuevo.
+        /// </summary>
+        private static readonly Dictionary<string, double> FactoresAplicados = new Dictionary<string, double>();
+
+        private static double ObtenerFactorAplicado(string formUid)
+        {
+            return FactoresAplicados.TryGetValue(formUid, out double factor) && factor > 0
+                ? factor
+                : CONSTANTS.FACTOR_POR_DEFECTO;
+        }
+
+        /// <summary>
+        /// Registra como aplicado el factor del registro cargado (los grabados antes de existir el
+        /// campo no tienen factor: cuentan como 1).
+        /// </summary>
+        private void RegistrarFactorAplicado(SAPbouiCOM.Form oForm)
+        {
+            double factor = 0;
+            try
+            {
+                factor = LeerFactor(oForm);
+            }
+            catch
+            {
+                // El UDF todavía no existe en el formulario (se crea al iniciar el addon): factor 1.
+            }
+            FactoresAplicados[oForm.UniqueID] = factor > 0 ? factor : CONSTANTS.FACTOR_POR_DEFECTO;
+        }
+
+        /// <summary>Al cerrar el formulario se descarta su factor aplicado.</summary>
+        public void OlvidarFactorAplicado(string formUid)
+        {
+            FactoresAplicados.Remove(formUid);
+        }
+
+        /// <summary>
+        /// Documento nuevo: factor 1 en la cabecera y como factor aplicado.
+        /// </summary>
+        private void IniciarFactor(SAPbouiCOM.Form oForm)
+        {
+            FactoresAplicados[oForm.UniqueID] = CONSTANTS.FACTOR_POR_DEFECTO;
+            try
+            {
+                EscribirFactor(oForm, CONSTANTS.FACTOR_POR_DEFECTO);
+            }
+            catch
+            {
+                // El UDF todavía no existe en el formulario (se crea al iniciar el addon).
+            }
+        }
+
+        /// <summary>
+        /// El usuario cambió el Factor (et_VALIDATE): multiplica la Cantidad consumida de la
+        /// cabecera y la Cantidad obtenida de cada línea por la proporción nuevo/anterior, así que
+        /// pasar de 1 a 3 triplica las cantidades y volver a 1 las restituye (también las editadas
+        /// a mano). Un factor vacío, cero o negativo se rechaza y se restaura el anterior.
+        /// </summary>
+        public void ManejarFactorValidado(SAPbouiCOM.Form oForm)
+        {
+            double factorAnterior = ObtenerFactorAplicado(oForm.UniqueID);
+            double factorNuevo = LeerFactor(oForm);
+
+            if (factorNuevo <= 0)
+            {
+                EscribirFactor(oForm, factorAnterior);
+                NotificationService.MostrarAlerta(CONSTANTS.MESSAGES.FACTOR_INVALID);
+                return;
+            }
+
+            if (Math.Abs(factorNuevo - factorAnterior) <= ToleranciaFactor) return;
+
+            double proporcion = factorNuevo / factorAnterior;
+
+            oForm.Freeze(true);
+            try
+            {
+                MultiplicarCantidadCabecera(oForm, proporcion);
+                MultiplicarCantidadesDetalle(oForm, proporcion);
+            }
+            finally
+            {
+                oForm.Freeze(false);
+            }
+
+            FactoresAplicados[oForm.UniqueID] = factorNuevo;
+
+            // La cantidad consumida cambió: el contexto (que usa el formulario de lotes) se actualiza.
+            ManejarCantidadConsumidaPerdidaFoco(oForm);
         }
 
         /// <summary>

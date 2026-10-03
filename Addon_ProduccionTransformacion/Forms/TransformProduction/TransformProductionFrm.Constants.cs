@@ -39,6 +39,7 @@
                     public const string EXIT_DOC_ENTRY = "ITPS_ExitDocEntry";
                     public const string ENTRY_REV_DOC_ENTRY = "ITPS_EntryRevDocEntry";
                     public const string EXIT_REV_DOC_ENTRY = "ITPS_ExitRevDocEntry";
+                    public const string FACTOR = "ITPS_Factor";
                 }
 
                 public static class FIELDS_HEAD_DB
@@ -51,6 +52,7 @@
                     public const string EXIT_DOC_ENTRY = "U_" + FIELDS_HEAD.EXIT_DOC_ENTRY;
                     public const string ENTRY_REV_DOC_ENTRY = "U_" + FIELDS_HEAD.ENTRY_REV_DOC_ENTRY;
                     public const string EXIT_REV_DOC_ENTRY = "U_" + FIELDS_HEAD.EXIT_REV_DOC_ENTRY;
+                    public const string FACTOR = "U_" + FIELDS_HEAD.FACTOR;
                 }
 
                 public static class FIELDS_LINE
@@ -98,6 +100,7 @@
                     public const string EXIT_DOC_ENTRY = "Salida DocEntry";
                     public const string ENTRY_REV_DOC_ENTRY = "Reversión Entrada DocEntry";
                     public const string EXIT_REV_DOC_ENTRY = "Reversión Salida DocEntry";
+                    public const string FACTOR = "Factor";
                 }
 
                 public static class FIELDS_LINE_DESC
@@ -138,6 +141,10 @@
                     public const string CREATOR = "18_U_E";
                     public const string ITEM_CODE = "21_U_E";
                     public const string QUANTITY = "22_U_E";
+                    public const string QUANTITY_LABEL = "22_U_S";
+                    /// <summary>Campo Factor (creado por código debajo de Cantidad consumida).</summary>
+                    public const string FACTOR = "itpsFac";
+                    public const string FACTOR_LABEL = "itpsFacL";
                     public const string REMARK = "19_U_E";
                     public const string LOTE_LABEL = "Item_1";
                     public const string ENTRY_DOCENTRY = "Item_4";
@@ -203,6 +210,9 @@
             /// </summary>
             public const double TOLERANCIA_CANTIDAD_OBTENIDA = 0.05;
 
+            /// <summary>Factor de un documento nuevo (o de uno grabado antes de existir el campo).</summary>
+            public const double FACTOR_POR_DEFECTO = 1;
+
             public static class STAGING_STATUS
             {
                 public const string DRAFT = "Borrador";
@@ -222,6 +232,8 @@
                 public static string TABLE_LINE_INFRA_ERROR_PREFIX = $"Error creando tabla {TABLES.TRANSFORM_PRODUCTION_LINE}: ";
 
                 public static string MENU_REGISTER_ERROR_PREFIX = "Error registrando el menú del addon: ";
+                public static string FACTOR_INVALID = "El factor debe ser un número mayor que cero.";
+                public static string FACTOR_BUILD_ERROR_PREFIX = "Error creando el campo Factor: ";
                 public static string CREATE_INVALID_CONSUMED_QTY = "La cantidad consumida debe ser un número mayor que cero.";
                 public static string CREATE_QTY_OUT_OF_TOLERANCE = "La suma de la cantidad obtenida ({0}) no coincide con la cantidad consumida ({1}): se admite una diferencia de ±{2} (entre {3} y {4}).";
                 public static string CREATE_NO_DETAIL_LINES = "Debe cargar al menos una línea de detalle (subproducto).";

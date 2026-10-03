@@ -129,6 +129,13 @@ namespace Addon_TransformProduction.Configuration
                     desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD_DESC.EXIT_REV_DOC_ENTRY,
                     type: BoFieldTypes.db_Numeric,
                     size: 11);
+
+                InfraDataService.CrearCampoUsuario(
+                    tableName: TransformProductionFrm.CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT,
+                    fieldName: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD.FACTOR,
+                    desc: TransformProductionFrm.CONSTANTS.TABLES.FIELDS_HEAD_DESC.FACTOR,
+                    type: BoFieldTypes.db_Float,
+                    subType: BoFldSubTypes.st_Quantity);
             }
             catch (Exception ex)
             {

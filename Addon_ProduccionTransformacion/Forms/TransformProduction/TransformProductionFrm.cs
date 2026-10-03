@@ -61,6 +61,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_FORM_CLOSE)
             {
                 ManejarCierreFormulario(pVal.FormUID);
+                OlvidarFactorAplicado(pVal.FormUID);
                 return;
             }
             #endregion
@@ -176,6 +177,31 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                         oForm = null;
                     }
                 }
+            }
+
+            // Al cambiar el Factor se multiplican la cantidad consumida y la de cada línea.
+            if (pVal.ActionSuccess && pVal.EventType == BoEventTypes.et_VALIDATE
+                && pVal.ItemChanged && pVal.ItemUID == CONSTANTS.UID.HEADER.FACTOR)
+            {
+                SAPbouiCOM.Form oForm = null;
+                try
+                {
+                    oForm = ConnectionSDK.UIAPI.Forms.Item(FormUID);
+                    ManejarFactorValidado(oForm);
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.MostrarError($"(OnItemEvent) {pVal.EventType}: {ex.Message}");
+                }
+                finally
+                {
+                    if (oForm != null)
+                    {
+                        MarshalGC.LiberarComObject(oForm);
+                        oForm = null;
+                    }
+                }
+                return;
             }
 
             // CONFIRM_PROD (Item_2): confirma la producción de un documento Pendiente.

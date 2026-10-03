@@ -98,6 +98,70 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
+        /// Factor de la cabecera (U_ITPS_Factor del DBDataSource), o 0 si está vacío o no es un
+        /// número.
+        /// </summary>
+        private double LeerFactor(SAPbouiCOM.Form oForm)
+        {
+            var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
+            return LeerNumeroDataSource(oDBDS, CONSTANTS.TABLES.FIELDS_HEAD_DB.FACTOR, oDBDS.Offset);
+        }
+
+        /// <summary>
+        /// Escribe el factor en la cabecera (DBDataSource, lo que se graba en el UDO).
+        /// </summary>
+        private void EscribirFactor(SAPbouiCOM.Form oForm, double factor)
+        {
+            var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
+            oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.FACTOR, oDBDS.Offset, factor.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// Multiplica la Cantidad consumida de la cabecera por <paramref name="proporcion"/>.
+        /// </summary>
+        private void MultiplicarCantidadCabecera(SAPbouiCOM.Form oForm, double proporcion)
+        {
+            var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
+            double cantidad = LeerNumeroDataSource(oDBDS, CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY, oDBDS.Offset);
+            oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY, oDBDS.Offset, MultiplicarCantidad(cantidad, proporcion));
+        }
+
+        /// <summary>
+        /// Multiplica la Cantidad obtenida de cada línea del detalle por <paramref name="proporcion"/>.
+        /// Antes baja a la DBDataSource lo editado en la grilla, para no perderlo.
+        /// </summary>
+        private void MultiplicarCantidadesDetalle(SAPbouiCOM.Form oForm, double proporcion)
+        {
+            var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
+            var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
+
+            oMatrix.FlushToDataSource();
+
+            for (int i = 0; i < oDBDS.Size; i++)
+            {
+                double cantidad = LeerNumeroDataSource(oDBDS, CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i);
+                oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i, MultiplicarCantidad(cantidad, proporcion));
+            }
+
+            oMatrix.LoadFromDataSource();
+        }
+
+        private static string MultiplicarCantidad(double cantidad, double proporcion)
+        {
+            return Math.Round(cantidad * proporcion, 6).ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Valor numérico de un campo del DBDataSource (SAP lo devuelve con punto decimal, sin
+        /// importar la configuración regional), o 0 si está vacío.
+        /// </summary>
+        private static double LeerNumeroDataSource(DBDataSource oDBDS, string campo, int fila)
+        {
+            string valor = oDBDS.GetValue(campo, fila)?.Trim();
+            return double.TryParse(valor, NumberStyles.Any, CultureInfo.InvariantCulture, out double numero) ? numero : 0;
+        }
+
+        /// <summary>
         /// Escribe el estado (U_ITPS_Status) en el combo de cabecera del formulario, para que
         /// quede reflejado al agregar el registro del UDO.
         /// </summary>
