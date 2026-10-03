@@ -61,7 +61,6 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             if (!pVal.BeforeAction && pVal.EventType == BoEventTypes.et_FORM_CLOSE)
             {
                 ManejarCierreFormulario(pVal.FormUID);
-                OlvidarFactorAplicado(pVal.FormUID);
                 return;
             }
             #endregion
@@ -179,7 +178,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 }
             }
 
-            // Al cambiar el Factor se multiplican la cantidad consumida y la de cada línea.
+            // Al cargar un Factor se multiplican la cantidad consumida y la de cada línea, y se
+            // revalidan los lotes seleccionados.
             if (pVal.ActionSuccess && pVal.EventType == BoEventTypes.et_VALIDATE
                 && pVal.ItemChanged && pVal.ItemUID == CONSTANTS.UID.HEADER.FACTOR)
             {

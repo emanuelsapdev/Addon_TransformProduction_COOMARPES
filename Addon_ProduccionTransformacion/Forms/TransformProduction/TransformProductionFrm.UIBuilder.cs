@@ -144,10 +144,10 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// Asegura el campo Factor (U_ITPS_Factor) debajo de Cantidad consumida: el formulario del
-        /// UDO viene de B1 Studio sin este campo, así que se crea por código (etiqueta + EditText
-        /// bound a la cabecera). Se llama en et_FORM_ACTIVATE y es idempotente. Toma la
-        /// habilitación de Cantidad consumida, por si el registro ya se bloqueó (Completado/Revertido).
+        /// Asegura el campo Factor debajo de Cantidad consumida: etiqueta + EditText bound a un
+        /// UserDataSource (no se graba en el UDO). Se llama en et_FORM_ACTIVATE y es idempotente.
+        /// Toma la habilitación de Cantidad consumida, por si el registro ya se bloqueó
+        /// (Completado/Revertido).
         /// </summary>
         public static void AsegurarCampoFactor(SAPbouiCOM.Form oForm)
         {
@@ -155,6 +155,15 @@ namespace Addon_TransformProduction.Forms.TransformProduction
 
             try
             {
+                try
+                {
+                    oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.HEADER.FACTOR_DATASOURCE);
+                }
+                catch
+                {
+                    oForm.DataSources.UserDataSources.Add(CONSTANTS.UID.HEADER.FACTOR_DATASOURCE, BoDataType.dt_QUANTITY);
+                }
+
                 SAPbouiCOM.Item oCantidad = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY);
                 SAPbouiCOM.Item oCantidadLabel = oForm.Items.Item(CONSTANTS.UID.HEADER.QUANTITY_LABEL);
                 int top = oCantidad.Top + (oCantidad.Top - oForm.Items.Item(CONSTANTS.UID.HEADER.ITEM_CODE).Top);
@@ -166,8 +175,8 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oFactor.Height = oCantidad.Height;
                 oFactor.FromPane = oCantidad.FromPane;
                 oFactor.ToPane = oCantidad.ToPane;
-                ((EditText)oFactor.Specific).DataBind.SetBound(true,
-                    CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT, CONSTANTS.TABLES.FIELDS_HEAD_DB.FACTOR);
+                oFactor.AffectsFormMode = false;
+                ((EditText)oFactor.Specific).DataBind.SetBound(true, "", CONSTANTS.UID.HEADER.FACTOR_DATASOURCE);
 
                 SAPbouiCOM.Item oLabel = oForm.Items.Add(CONSTANTS.UID.HEADER.FACTOR_LABEL, BoFormItemTypes.it_STATIC);
                 oLabel.Left = oCantidadLabel.Left;
@@ -177,7 +186,7 @@ namespace Addon_TransformProduction.Forms.TransformProduction
                 oLabel.FromPane = oCantidadLabel.FromPane;
                 oLabel.ToPane = oCantidadLabel.ToPane;
                 oLabel.LinkTo = CONSTANTS.UID.HEADER.FACTOR;
-                ((StaticText)oLabel.Specific).Caption = CONSTANTS.TABLES.FIELDS_HEAD_DESC.FACTOR;
+                ((StaticText)oLabel.Specific).Caption = CONSTANTS.UID.HEADER.FACTOR_CAPTION;
 
                 oFactor.Enabled = oCantidad.Enabled;
             }

@@ -98,39 +98,66 @@ namespace Addon_TransformProduction.Forms.TransformProduction
         }
 
         /// <summary>
-        /// Factor de la cabecera (U_ITPS_Factor del DBDataSource), o 0 si está vacío o no es un
-        /// número.
+        /// Factor cargado en el campo Factor (UserDataSource, no se graba en el UDO), o 0 si está
+        /// vacío o el formulario todavía no tiene el campo.
         /// </summary>
         private double LeerFactor(SAPbouiCOM.Form oForm)
         {
-            var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
-            return LeerNumeroDataSource(oDBDS, CONSTANTS.TABLES.FIELDS_HEAD_DB.FACTOR, oDBDS.Offset);
+            string valor;
+            try
+            {
+                valor = oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.HEADER.FACTOR_DATASOURCE).ValueEx?.Trim();
+            }
+            catch
+            {
+                return 0;
+            }
+
+            if (double.TryParse(valor, NumberStyles.Any, CultureInfo.InvariantCulture, out double factor)) return factor;
+            if (double.TryParse(valor, NumberStyles.Any, CultureInfo.CurrentCulture, out factor)) return factor;
+            return 0;
         }
 
         /// <summary>
-        /// Escribe el factor en la cabecera (DBDataSource, lo que se graba en el UDO).
+        /// Vacía el campo Factor (registro cargado, documento nuevo o factor inválido). No hace
+        /// nada si el formulario todavía no tiene el campo.
         /// </summary>
-        private void EscribirFactor(SAPbouiCOM.Form oForm, double factor)
+        private void LimpiarFactor(SAPbouiCOM.Form oForm)
+        {
+            try
+            {
+                oForm.DataSources.UserDataSources.Item(CONSTANTS.UID.HEADER.FACTOR_DATASOURCE).ValueEx = "0";
+            }
+            catch
+            {
+                // El formulario todavía no tiene el campo Factor.
+            }
+        }
+
+        /// <summary>
+        /// Cantidad consumida de la cabecera leída del DBDataSource (0 si está vacía).
+        /// </summary>
+        private double LeerCantidadConsumidaDataSource(SAPbouiCOM.Form oForm)
         {
             var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
-            oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.FACTOR, oDBDS.Offset, factor.ToString(CultureInfo.InvariantCulture));
+            return LeerNumeroDataSource(oDBDS, CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY, oDBDS.Offset);
         }
 
         /// <summary>
-        /// Multiplica la Cantidad consumida de la cabecera por <paramref name="proporcion"/>.
+        /// Multiplica la Cantidad consumida de la cabecera por <paramref name="factor"/>.
         /// </summary>
-        private void MultiplicarCantidadCabecera(SAPbouiCOM.Form oForm, double proporcion)
+        private void MultiplicarCantidadCabecera(SAPbouiCOM.Form oForm, double factor)
         {
             var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_HEAD_WITH_AT);
-            double cantidad = LeerNumeroDataSource(oDBDS, CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY, oDBDS.Offset);
-            oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY, oDBDS.Offset, MultiplicarCantidad(cantidad, proporcion));
+            double cantidad = LeerCantidadConsumidaDataSource(oForm);
+            oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_HEAD_DB.QUANTITY, oDBDS.Offset, MultiplicarCantidad(cantidad, factor));
         }
 
         /// <summary>
-        /// Multiplica la Cantidad obtenida de cada línea del detalle por <paramref name="proporcion"/>.
+        /// Multiplica la Cantidad obtenida de cada línea del detalle por <paramref name="factor"/>.
         /// Antes baja a la DBDataSource lo editado en la grilla, para no perderlo.
         /// </summary>
-        private void MultiplicarCantidadesDetalle(SAPbouiCOM.Form oForm, double proporcion)
+        private void MultiplicarCantidadesDetalle(SAPbouiCOM.Form oForm, double factor)
         {
             var oMatrix = (Matrix)oForm.Items.Item(CONSTANTS.UID.GRID).Specific;
             var oDBDS = oForm.DataSources.DBDataSources.Item(CONSTANTS.TABLES.TRANSFORM_PRODUCTION_LINE_WITH_AT);
@@ -140,15 +167,15 @@ namespace Addon_TransformProduction.Forms.TransformProduction
             for (int i = 0; i < oDBDS.Size; i++)
             {
                 double cantidad = LeerNumeroDataSource(oDBDS, CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i);
-                oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i, MultiplicarCantidad(cantidad, proporcion));
+                oDBDS.SetValue(CONSTANTS.TABLES.FIELDS_LINE_DB.QUANTITY_OBTAINED, i, MultiplicarCantidad(cantidad, factor));
             }
 
             oMatrix.LoadFromDataSource();
         }
 
-        private static string MultiplicarCantidad(double cantidad, double proporcion)
+        private static string MultiplicarCantidad(double cantidad, double factor)
         {
-            return Math.Round(cantidad * proporcion, 6).ToString(CultureInfo.InvariantCulture);
+            return Math.Round(cantidad * factor, 6).ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>
